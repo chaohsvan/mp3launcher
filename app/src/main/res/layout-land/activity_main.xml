@@ -1,0 +1,385 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/black"
+    tools:context=".MainActivity">
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/top_scroller"
+        android:layout_width="60dp"
+        android:layout_height="0dp"
+        android:background="@android:color/black"
+        android:clipToPadding="false"
+        android:paddingVertical="12dp"
+        android:layout_marginStart="30dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <EditText
+        android:id="@+id/search_edit_text"
+        android:layout_width="0dp"
+        android:layout_height="64dp"
+        android:background="@android:color/black"
+        android:fontFamily="@font/press_start_2p_regular"
+        android:hint="::"
+        android:gravity="center"
+        android:imeOptions="actionSearch"
+        android:inputType="text"
+        android:textColor="@color/lcd_screen_text_color"
+        android:textColorHint="@color/lcd_screen_text_color_faded"
+        android:textSize="16sp"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="@+id/top_scroller"
+        app:layout_constraintStart_toStartOf="@+id/top_scroller"
+        app:layout_constraintEnd_toEndOf="@+id/top_scroller" />
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/main_device_body"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@drawable/device_chassis_background"
+        android:layout_marginVertical="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/top_scroller"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <!-- Re-using lcd_screen from portrait, but constraining it differently -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/lcd_screen"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_margin="16dp"
+            android:background="@drawable/lcd_screen_background"
+            android:padding="12dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/controls_container"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <!-- All contents from the original lcd_screen are here -->
+            <com.example.mp3launcher.ScanlineView
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:alpha="0.2"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <ImageView
+                android:id="@+id/playback_icon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_pause"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:tint="@color/lcd_screen_text_color" />
+
+            <TextView
+                android:id="@+id/playback_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:fontFamily="@font/press_start_2p_regular"
+                android:text="STOP"
+                android:textColor="@color/lcd_screen_text_color"
+                android:textSize="12sp"
+                app:layout_constraintBottom_toBottomOf="@+id/playback_icon"
+                app:layout_constraintStart_toEndOf="@+id/playback_icon"
+                app:layout_constraintTop_toTopOf="@+id/playback_icon" />
+
+            <LinearLayout
+                android:id="@+id/status_bars"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:orientation="vertical"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/press_start_2p_regular"
+                        android:text="VOL"
+                        android:textColor="@color/lcd_screen_text_color"
+                        android:textSize="10sp" />
+
+                    <LinearLayout
+                        android:id="@+id/volume_status_container"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:orientation="horizontal" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/press_start_2p_regular"
+                        android:text="BAT"
+                        android:textColor="@color/lcd_screen_text_color"
+                        android:textSize="10sp" />
+
+                    <LinearLayout
+                        android:id="@+id/battery_status_container"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:orientation="horizontal" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <View
+                android:id="@+id/divider_top"
+                android:layout_width="0dp"
+                android:layout_height="2dp"
+                android:layout_marginTop="8dp"
+                android:background="@color/lcd_screen_text_color"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/status_bars" />
+
+            <ImageView
+                android:id="@+id/album_art"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_marginTop="12dp"
+                android:background="@color/lcd_screen_text_color"
+                android:padding="4dp"
+                android:scaleType="centerCrop"
+                android:src="@mipmap/ic_launcher"
+                app:layout_constraintDimensionRatio="1:1"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/divider_top"
+                app:layout_constraintWidth_percent="0.45" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_marginStart="16dp"
+                android:gravity="center_vertical"
+                android:orientation="vertical"
+                app:layout_constraintBottom_toBottomOf="@+id/album_art"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/album_art"
+                app:layout_constraintTop_toTopOf="@+id/album_art">
+
+                <TextView
+                    android:id="@+id/song_title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:fontFamily="@font/zpix"
+                    android:maxLines="2"
+                    android:text="COMMON JASMINE..."
+                    android:textColor="@color/lcd_screen_text_color"
+                    android:textSize="28sp" />
+
+                <TextView
+                    android:id="@+id/artist_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:fontFamily="@font/zpix"
+                    android:maxLines="1"
+                    android:text="Jay Chou"
+                    android:textColor="@color/lcd_screen_text_color_faded"
+                    android:textSize="24sp" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/progress_text_current"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/vt323_regular"
+                android:text="0:00"
+                android:textColor="@color/lcd_screen_text_color"
+                android:textSize="22sp"
+                app:layout_constraintBottom_toTopOf="@+id/progress_bar"
+                app:layout_constraintStart_toStartOf="parent" />
+
+            <TextView
+                android:id="@+id/progress_text_duration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/vt323_regular"
+                android:text="5:01"
+                android:textColor="@color/lcd_screen_text_color_faded"
+                android:textSize="22sp"
+                app:layout_constraintBottom_toBottomOf="@+id/progress_text_current"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <ProgressBar
+                android:id="@+id/progress_bar"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="0dp"
+                android:layout_height="24dp"
+                android:progressDrawable="@drawable/progress_bar_pixelated"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <!-- New controls container for landscape -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/controls_container"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginEnd="16dp"
+            android:background="@drawable/control_panel_background"
+            android:padding="12dp"
+            app:layout_constraintBottom_toBottomOf="@+id/lcd_screen"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/lcd_screen"
+            app:layout_constraintTop_toTopOf="@+id/lcd_screen">
+
+            <ImageButton
+                android:id="@+id/play_pause_button"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:background="@drawable/retro_play_button_background"
+                android:padding="24dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_play"
+                app:layout_constraintBottom_toTopOf="@+id/guideline_h1"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <androidx.constraintlayout.widget.Guideline
+                android:id="@+id/guideline_h1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                app:layout_constraintGuide_percent="0.35" />
+
+            <ImageButton
+                android:id="@+id/vol_down_button"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_margin="4dp"
+                android:background="@drawable/retro_control_button_background"
+                android:src="@drawable/ic_volume_down"
+                app:layout_constraintBottom_toTopOf="@+id/guideline_h2"
+                app:layout_constraintEnd_toStartOf="@+id/vol_up_button"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/guideline_h1"
+                app:tint="#BDBDBD" />
+
+            <ImageButton
+                android:id="@+id/vol_up_button"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_margin="4dp"
+                android:background="@drawable/retro_control_button_background"
+                android:src="@drawable/ic_volume_up"
+                app:layout_constraintBottom_toTopOf="@+id/guideline_h2"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/vol_down_button"
+                app:layout_constraintTop_toBottomOf="@+id/guideline_h1"
+                app:tint="#BDBDBD" />
+
+            <androidx.constraintlayout.widget.Guideline
+                android:id="@+id/guideline_h2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                app:layout_constraintGuide_percent="0.55" />
+
+            <ImageButton
+                android:id="@+id/prev_button"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_margin="4dp"
+                android:background="@drawable/retro_control_button_background"
+                android:src="@drawable/ic_skip_previous"
+                app:layout_constraintBottom_toTopOf="@+id/guideline_h3"
+                app:layout_constraintEnd_toStartOf="@+id/next_button"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/guideline_h2"
+                app:tint="#FFFFFF" />
+
+            <ImageButton
+                android:id="@+id/next_button"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_margin="4dp"
+                android:background="@drawable/retro_control_button_background"
+                android:src="@drawable/ic_skip_next"
+                app:layout_constraintBottom_toTopOf="@+id/guideline_h3"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/prev_button"
+                app:layout_constraintTop_toBottomOf="@+id/guideline_h2"
+                app:tint="#FFFFFF" />
+
+            <androidx.constraintlayout.widget.Guideline
+                android:id="@+id/guideline_h3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                app:layout_constraintGuide_percent="0.8" />
+
+            <ImageButton
+                android:id="@+id/rewind_button"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_margin="4dp"
+                android:background="@drawable/retro_control_button_background"
+                android:src="@drawable/ic_rewind"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@+id/ff_button"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/guideline_h3"
+                app:tint="#BDBDBD" />
+
+            <ImageButton
+                android:id="@+id/ff_button"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_margin="4dp"
+                android:background="@drawable/retro_control_button_background"
+                android:src="@drawable/ic_fast_forward"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/rewind_button"
+                app:layout_constraintTop_toBottomOf="@+id/guideline_h3"
+                app:tint="#BDBDBD" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <TextView
+        android:id="@+id/alphabet_indicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:alpha="0.0"
+        android:background="@drawable/alphabet_indicator_background"
+        android:fontFamily="@font/press_start_2p_regular"
+        android:padding="8dp"
+        android:textColor="@color/lcd_screen_bg_color"
+        android:textSize="24sp"
+        app:layout_constraintEnd_toEndOf="@+id/top_scroller"
+        app:layout_constraintStart_toStartOf="@+id/top_scroller"
+        app:layout_constraintTop_toTopOf="@+id/top_scroller"
+        tools:text="A" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

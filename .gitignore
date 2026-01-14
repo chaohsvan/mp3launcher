@@ -1,0 +1,58 @@
+# Android Studio 生成的文件
+*.iml
+.idea/
+  .idea/caches/
+  .idea/libraries/
+  .idea/modules.xml
+  .idea/workspace.xml
+  .idea/navEditor.xml
+  .idea/assetWizardSettings.xml
+  misc.xml
+  deploymentTargetDropDown.xml
+  render.experimental.xml
+
+# Gradle 文件
+.gradle/
+.gradle
+
+# 构建输出
+/build/
+build/
+*.apk
+*.aab
+*.ap_
+*.dex
+output-metadata.json
+
+# 本地配置文件
+/local.properties
+local.properties
+
+# ProGuard
+/proguard/
+
+# 日志文件
+*.log
+
+# 截图/录屏目录
+/captures/
+captures/
+
+# 原生构建
+.externalNativeBuild/
+.cxx/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+._*
+
+# 密钥文件
+*.jks
+*.keystore
+
+# Google Services (Firebase等)
+google-services.json
+
+# Android Profiling
+*.hprof

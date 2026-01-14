@@ -1,0 +1,46 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.Mp3launcher" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Customize your light theme here. -->
+        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+    </style>
+
+    <style name="Theme.Mp3launcher" parent="Base.Theme.Mp3launcher" />
+
+    <style name="Theme.Mp3launcher.Fullscreen" parent="Theme.Mp3launcher">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+    </style>
+
+    <!-- Parent style for the control container -->
+    <style name="ControlContainer" parent=""/>
+
+    <!-- Style for the button containers -->
+    <style name="ControlContainer.Button" parent="ControlContainer">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:layout_margin">4dp</item>
+        <item name="android:background">@drawable/retro_control_button_background</item>
+        <item name="android:orientation">vertical</item>
+        <item name="android:gravity">center</item>
+        <item name="android:padding">4dp</item>
+    </style>
+
+    <!-- Style for the button icons -->
+    <style name="ControlContainer.Icon" parent="ControlContainer">
+        <item name="android:layout_width">24dp</item>
+        <item name="android:layout_height">24dp</item>
+    </style>
+
+    <!-- Style for the button labels -->
+    <style name="ControlContainer.Label" parent="ControlContainer">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:fontFamily">@font/press_start_2p_regular</item>
+        <item name="android:textColor">#BDBDBD</item>
+        <item name="android:textSize">6sp</item>
+        <item name="android:layout_marginTop">4dp</item>
+    </style>
+
+</resources>

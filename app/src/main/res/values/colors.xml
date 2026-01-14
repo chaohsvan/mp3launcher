@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- Retro MP3 Player Colors -->
+    <color name="device_body_color">#18181b</color>
+    <color name="device_border_color">#27272a</color>
+    <color name="top_scroller_bg_color">#09090b</color>
+
+    <color name="lcd_screen_bg_color">#fe9c2f</color>
+    <color name="lcd_screen_text_color">#3e1b04</color>
+    <color name="lcd_screen_text_color_faded">#993e1b04</color>
+
+    <color name="controls_bg_color">#1c1c1e</color>
+    <color name="control_panel_bg_color">#111111</color>
+    <color name="control_panel_border_color">#808080</color>
+
+    <color name="play_button_color">#f97316</color>
+    <color name="play_button_color_pressed">#ea580c</color>
+    <color name="play_button_text_color">#ffffff</color>
+
+    <color name="button_secondary_color">#3f3f46</color>
+    <color name="button_secondary_color_pressed">#52525b</color>
+
+</resources>

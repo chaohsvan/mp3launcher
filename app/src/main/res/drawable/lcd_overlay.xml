@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Inner Shadow -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/transparent" />
+            <stroke
+                android:width="4dp"
+                android:color="#40000000" />
+        </shape>
+    </item>
+    <!-- Grid Pattern - Temporarily disabled to fix crash. It requires a bitmap asset, not a shape drawable. -->
+    <!--
+    <item>
+        <bitmap
+            android:src="@drawable/grid_tile"
+            android:tileMode="repeat" />
+    </item>
+    -->
+</layer-list>

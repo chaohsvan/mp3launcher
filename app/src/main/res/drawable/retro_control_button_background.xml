@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_pressed="true" android:drawable="@drawable/retro_control_button_pressed" />
+    <item>
+        <layer-list>
+            <!-- Shadow layer -->
+            <item>
+                <shape android:shape="rectangle">
+                    <solid android:color="#000000"/>
+                    <corners android:radius="12dp"/>
+                </shape>
+            </item>
+            <!-- Button face layer -->
+            <item android:bottom="4dp" android:right="4dp">
+                <shape android:shape="rectangle">
+                    <solid android:color="#27272a"/>
+                    <corners android:radius="12dp"/>
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+</selector>
