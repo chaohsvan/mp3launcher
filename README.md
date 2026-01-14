@@ -1,8 +1,8 @@
 # 复古 MP3 风格音乐启动器
 
 这是一款以复古 MP3 播放器为灵感、以音乐控制为核心的极简安卓启动器。
-![fig1](/tempshow/fig1)
-![fig2](/tempshow/fig2)
+![fig1](/tempshow/fig1.jpg)
+![fig2](/tempshow/fig2.jpg)
 
 
 ## 音乐为中心的主屏
