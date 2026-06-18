@@ -356,6 +356,8 @@ private fun MainActivity.requestUninstall(packageName: String) {
 }
 
 fun MainActivity.setupMediaControls() {
+    setupLcdSwipeTrackControl()
+
     binding.holdSwitch.onCheckedChange = { enabled ->
         binding.holdSwitch.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
         preferences.isMinimalModeEnabled = enabled
@@ -395,6 +397,81 @@ fun MainActivity.setupMediaControls() {
                 }
             }
         )
+    }
+}
+
+private fun MainActivity.setupLcdSwipeTrackControl() {
+    val touchSlop = ViewConfiguration.get(this).scaledTouchSlop
+    val swipeThreshold = (72f * resources.displayMetrics.density).toInt()
+    binding.lcdScreen.setOnTouchListener { view, event ->
+        if (!viewModel.uiState.value.isLcdSwipeTrackEnabled) {
+            return@setOnTouchListener false
+        }
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                lcdSwipeDownX = event.x
+                lcdSwipeDownY = event.y
+                lcdSwipeTriggered = false
+                view.parent?.requestDisallowInterceptTouchEvent(true)
+                true
+            }
+            MotionEvent.ACTION_MOVE -> {
+                val dx = event.x - lcdSwipeDownX
+                val dy = event.y - lcdSwipeDownY
+                if (!lcdSwipeTriggered && kotlin.math.abs(dx) > touchSlop && kotlin.math.abs(dx) > kotlin.math.abs(dy) * 1.3f) {
+                    view.parent?.requestDisallowInterceptTouchEvent(true)
+                }
+                if (!lcdSwipeTriggered && kotlin.math.abs(dx) >= swipeThreshold && kotlin.math.abs(dx) > kotlin.math.abs(dy) * 1.3f) {
+                    lcdSwipeTriggered = true
+                    handleLcdTrackSwipe(if (dx < 0) 1 else -1)
+                }
+                true
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                view.parent?.requestDisallowInterceptTouchEvent(false)
+                lcdSwipeTriggered = false
+                true
+            }
+            else -> true
+        }
+    }
+}
+
+private fun MainActivity.handleLcdTrackSwipe(direction: Int) {
+    requestMediaUpdate()
+    window.decorView.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+    animateLcdTrackSwipe(direction)
+    if (direction > 0) {
+        MediaNotificationListenerService.mediaController?.transportControls?.skipToNext()
+    } else {
+        MediaNotificationListenerService.mediaController?.transportControls?.skipToPrevious()
+    }
+}
+
+private fun MainActivity.animateLcdTrackSwipe(direction: Int) {
+    val offset = direction * -18f * resources.displayMetrics.density
+    val contentViews = listOf(
+        binding.albumArt,
+        binding.statusBars,
+        binding.progressTextCurrent,
+        binding.progressTextDuration,
+        binding.progressBar
+    )
+    contentViews.forEach { view ->
+        view.animate().cancel()
+        view.animate()
+            .translationX(offset)
+            .alpha(0.58f)
+            .setDuration(90)
+            .withEndAction {
+                view.translationX = -offset * 0.42f
+                view.animate()
+                    .translationX(0f)
+                    .alpha(1f)
+                    .setDuration(150)
+                    .start()
+            }
+            .start()
     }
 }
 

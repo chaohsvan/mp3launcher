@@ -53,6 +53,9 @@ class MainActivity : AppCompatActivity() {
     private var topScrollerCategoryChanged = false
     private var topScrollerDownRawX = 0f
     private var topScrollerDownRawY = 0f
+    internal var lcdSwipeDownX = 0f
+    internal var lcdSwipeDownY = 0f
+    internal var lcdSwipeTriggered = false
     private var isLongPress = false
     private var lastDisplayedCategory: AppCategory? = null
     private val LONG_PRESS_DELAY = 500L // 500ms for long press definition

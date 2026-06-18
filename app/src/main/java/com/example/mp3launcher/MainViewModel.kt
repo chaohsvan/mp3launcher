@@ -36,7 +36,8 @@ data class UiState(
     val volumeKeyMode: VolumeKeyMode = VolumeKeyMode.TRACK_CONTROL,
     val themePreset: ThemePreset = ThemePreset.SILVER_DISCMAN,
     val isMinimalModeEnabled: Boolean = false,
-    val isBootAnimationEnabled: Boolean = true
+    val isBootAnimationEnabled: Boolean = true,
+    val isLcdSwipeTrackEnabled: Boolean = false
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -220,7 +221,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             volumeKeyMode = preferences.volumeKeyMode,
             themePreset = preferences.themePreset,
             isMinimalModeEnabled = preferences.isMinimalModeEnabled,
-            isBootAnimationEnabled = preferences.isBootAnimationEnabled
+            isBootAnimationEnabled = preferences.isBootAnimationEnabled,
+            isLcdSwipeTrackEnabled = preferences.isLcdSwipeTrackEnabled
         )
     }
 
@@ -259,7 +261,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     volumeKeyMode = preferences.volumeKeyMode,
                     themePreset = preferences.themePreset,
                     isMinimalModeEnabled = preferences.isMinimalModeEnabled,
-                    isBootAnimationEnabled = preferences.isBootAnimationEnabled
+                    isBootAnimationEnabled = preferences.isBootAnimationEnabled,
+                    isLcdSwipeTrackEnabled = preferences.isLcdSwipeTrackEnabled
                 )
                 lastReceivedPosition = 0
                 progressHandler.removeCallbacks(updateProgressAction)

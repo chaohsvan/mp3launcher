@@ -111,6 +111,9 @@ class SettingsActivity : AppCompatActivity() {
             addCheckBox(text.bootAnimation, text.bootAnimationDescription, preferences.isBootAnimationEnabled) {
                 preferences.isBootAnimationEnabled = it
             }
+            addCheckBox(text.lcdSwipeTrack, text.lcdSwipeTrackDescription, preferences.isLcdSwipeTrackEnabled) {
+                preferences.isLcdSwipeTrackEnabled = it
+            }
         })
 
         container.addView(section(text.themeSection, text.themeSectionDescription) {

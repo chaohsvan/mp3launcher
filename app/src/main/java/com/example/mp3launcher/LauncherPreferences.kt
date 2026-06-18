@@ -206,6 +206,10 @@ class LauncherPreferences(context: Context) {
         get() = prefs.getBoolean(KEY_BOOT_ANIMATION, true)
         set(value) = prefs.edit().putBoolean(KEY_BOOT_ANIMATION, value).apply()
 
+    var isLcdSwipeTrackEnabled: Boolean
+        get() = prefs.getBoolean(KEY_LCD_SWIPE_TRACK, false)
+        set(value) = prefs.edit().putBoolean(KEY_LCD_SWIPE_TRACK, value).apply()
+
     var defaultMusicPackage: String?
         get() = prefs.getString(KEY_DEFAULT_MUSIC_PACKAGE, null)
         set(value) = prefs.edit().putString(KEY_DEFAULT_MUSIC_PACKAGE, value).apply()
@@ -402,6 +406,7 @@ class LauncherPreferences(context: Context) {
         private const val KEY_CUSTOM_CATEGORY_LABELS = "custom_category_labels"
         private const val KEY_MINIMAL_MODE = "minimal_mode"
         private const val KEY_BOOT_ANIMATION = "boot_animation"
+        private const val KEY_LCD_SWIPE_TRACK = "lcd_swipe_track"
         private const val KEY_DEFAULT_MUSIC_PACKAGE = "default_music_package"
         private const val KEY_PROMPTED_DEFAULT_LAUNCHER = "prompted_default_launcher"
         private const val RECENT_SEPARATOR = "|"
