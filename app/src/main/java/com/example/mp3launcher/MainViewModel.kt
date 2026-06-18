@@ -32,7 +32,7 @@ data class UiState(
     val progress: Long = 0,
     val duration: Long = 0,
     val apps: List<AppInfo> = emptyList(),
-    val selectedCategory: AppCategory = AppCategory.ALL,
+    val selectedCategory: AppCategory = AppCategory.RECENT,
     val volumeKeyMode: VolumeKeyMode = VolumeKeyMode.TRACK_CONTROL,
     val themePreset: ThemePreset = ThemePreset.SILVER_DISCMAN,
     val isMinimalModeEnabled: Boolean = false,
@@ -106,9 +106,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun selectAdjacentCategory(direction: Int) {
-        val categories = AppCategory.entries
-        val currentIndex = categories.indexOf(preferences.selectedCategory).coerceAtLeast(0)
-        val nextIndex = (currentIndex + direction).coerceIn(0, categories.lastIndex)
+        val categories = preferences.navigationCategories()
+        if (categories.isEmpty()) return
+        val currentIndex = categories.indexOf(preferences.selectedCategory).let {
+            if (it >= 0) it else categories.indexOf(AppCategory.RECENT)
+        }.coerceAtLeast(0)
+        val nextIndex = if (categories.size == 1) {
+            currentIndex
+        } else {
+            (currentIndex + direction + categories.size) % categories.size
+        }
         selectCategory(categories[nextIndex])
     }
 
@@ -177,10 +184,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val selectedCategory = preferences.selectedCategory
             val recentPackages = preferences.recentApps
             val appsForCategory = when (selectedCategory) {
-                AppCategory.ALL -> allApps
-                AppCategory.RECENT -> recentPackages.mapNotNull { packageName ->
-                    allApps.firstOrNull { it.packageName == packageName }
+                AppCategory.RECENT -> {
+                    val recentApps = recentPackages.mapNotNull { packageName ->
+                        allApps.firstOrNull { it.packageName == packageName }
+                    }
+                    if (recentApps.isEmpty()) {
+                        allApps
+                    } else {
+                        allApps.filter { it.isSettingsShortcut } + recentApps.filterNot { it.isSettingsShortcut }
+                    }
                 }
+                AppCategory.ALL -> allApps
                 else -> allApps.filter { it.isSettingsShortcut || it.category == selectedCategory }
             }
             val filteredApps = if (searchQuery.isBlank()) {

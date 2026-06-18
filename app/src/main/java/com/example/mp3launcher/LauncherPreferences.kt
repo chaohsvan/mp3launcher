@@ -9,9 +9,21 @@ enum class AppCategory(val label: String) {
     MUSIC("MUSIC"),
     SOCIAL("SOCIAL"),
     TOOLS("TOOLS"),
-    GAMES("GAMES");
+    GAMES("GAMES"),
+    CUSTOM_1("CUSTOM 1"),
+    CUSTOM_2("CUSTOM 2"),
+    CUSTOM_3("CUSTOM 3"),
+    CUSTOM_4("CUSTOM 4"),
+    CUSTOM_5("CUSTOM 5");
+
+    val isCustom: Boolean
+        get() = this in customSlots
 
     companion object {
+        val fixedAssignableGroups = emptyList<AppCategory>()
+        val baseNavigationGroups = listOf(ALL, RECENT)
+        val customSlots = listOf(CUSTOM_1, CUSTOM_2, CUSTOM_3, CUSTOM_4, CUSTOM_5)
+
         fun fromName(value: String?): AppCategory {
             return findByName(value) ?: ALL
         }
@@ -166,7 +178,12 @@ class LauncherPreferences(context: Context) {
     private val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     var selectedCategory: AppCategory
-        get() = AppCategory.fromName(prefs.getString(KEY_SELECTED_CATEGORY, AppCategory.ALL.name))
+        get() {
+            val saved = AppCategory.fromName(prefs.getString(KEY_SELECTED_CATEGORY, AppCategory.RECENT.name))
+            if (saved in AppCategory.baseNavigationGroups) return saved
+            if (saved.isCustom && customCategoryLabel(saved) != null) return saved
+            return AppCategory.RECENT
+        }
         set(value) = prefs.edit().putString(KEY_SELECTED_CATEGORY, value.name).apply()
 
     var volumeKeyMode: VolumeKeyMode
@@ -210,21 +227,86 @@ class LauncherPreferences(context: Context) {
             .filter { it.isNotBlank() }
 
     val appCategoryOverrides: Map<String, AppCategory>
-        get() = prefs.getString(KEY_CATEGORY_OVERRIDES, "")
+        get() {
+            val activeCustomGroups = customCategoryLabels.keys
+            return prefs.getString(KEY_CATEGORY_OVERRIDES, "")
+                .orEmpty()
+                .split(CATEGORY_PAIR_SEPARATOR)
+                .filter { it.isNotBlank() }
+                .mapNotNull { item ->
+                    val parts = item.split(CATEGORY_VALUE_SEPARATOR, limit = 2)
+                    val packageName = parts.getOrNull(0)?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                    val category = AppCategory.findByName(parts.getOrNull(1)) ?: return@mapNotNull null
+                    if (category.isCustom && category !in activeCustomGroups) return@mapNotNull null
+                    packageName to category
+                }
+                .toMap()
+        }
+
+    val customCategoryLabels: Map<AppCategory, String>
+        get() = prefs.getString(KEY_CUSTOM_CATEGORY_LABELS, "")
             .orEmpty()
-            .split(CATEGORY_PAIR_SEPARATOR)
+            .split(CUSTOM_CATEGORY_PAIR_SEPARATOR)
             .filter { it.isNotBlank() }
             .mapNotNull { item ->
-                val parts = item.split(CATEGORY_VALUE_SEPARATOR, limit = 2)
-                val packageName = parts.getOrNull(0)?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
-                val category = AppCategory.findByName(parts.getOrNull(1)) ?: return@mapNotNull null
-                packageName to category
+                val parts = item.split(CUSTOM_CATEGORY_VALUE_SEPARATOR, limit = 2)
+                val category = AppCategory.findByName(parts.getOrNull(0))?.takeIf { it.isCustom }
+                    ?: return@mapNotNull null
+                val label = decodeCustomCategoryLabel(parts.getOrNull(1).orEmpty()).trim()
+                    .takeIf { it.isNotBlank() }
+                    ?: return@mapNotNull null
+                category to label
             }
             .toMap()
 
     fun isPinned(packageName: String): Boolean = packageName in pinnedApps
 
     fun categoryOverrideFor(packageName: String): AppCategory? = appCategoryOverrides[packageName]
+
+    fun activeCustomCategories(): List<AppCategory> {
+        val labels = customCategoryLabels
+        return AppCategory.customSlots.filter { it in labels }
+    }
+
+    fun assignableCategories(): List<AppCategory> = AppCategory.fixedAssignableGroups + activeCustomCategories()
+
+    fun navigationCategories(): List<AppCategory> = AppCategory.baseNavigationGroups + activeCustomCategories()
+
+    fun customCategoryLabel(category: AppCategory): String? {
+        if (!category.isCustom) return null
+        return customCategoryLabels[category]
+    }
+
+    fun createCustomCategory(label: String): AppCategory? {
+        val trimmed = label.trim().takeIf { it.isNotBlank() } ?: return null
+        val nextSlot = AppCategory.customSlots.firstOrNull { customCategoryLabel(it) == null } ?: return null
+        setCustomCategoryLabel(nextSlot, trimmed)
+        return nextSlot
+    }
+
+    fun setCustomCategoryLabel(category: AppCategory, label: String) {
+        if (!category.isCustom) return
+        val trimmed = label.trim()
+        if (trimmed.isBlank()) return
+        val next = customCategoryLabels.toMutableMap()
+        next[category] = trimmed
+        saveCustomCategoryLabels(next)
+    }
+
+    fun deleteCustomCategory(category: AppCategory) {
+        if (!category.isCustom) return
+        val nextLabels = customCategoryLabels.toMutableMap()
+        nextLabels.remove(category)
+        saveCustomCategoryLabels(nextLabels)
+
+        val nextOverrides = appCategoryOverrides.toMutableMap()
+        nextOverrides.entries.removeAll { it.value == category }
+        saveCategoryOverrides(nextOverrides)
+
+        if (selectedCategory == category) {
+            selectedCategory = AppCategory.RECENT
+        }
+    }
 
     fun togglePinned(packageName: String) {
         val next = pinnedApps.toMutableSet()
@@ -284,6 +366,25 @@ class LauncherPreferences(context: Context) {
         prefs.edit().putString(KEY_CATEGORY_OVERRIDES, encoded).apply()
     }
 
+    private fun saveCustomCategoryLabels(labels: Map<AppCategory, String>) {
+        val encoded = labels.entries
+            .filter { it.key.isCustom && it.value.isNotBlank() }
+            .joinToString(CUSTOM_CATEGORY_PAIR_SEPARATOR) {
+                "${it.key.name}$CUSTOM_CATEGORY_VALUE_SEPARATOR${encodeCustomCategoryLabel(it.value)}"
+            }
+        prefs.edit().putString(KEY_CUSTOM_CATEGORY_LABELS, encoded).apply()
+    }
+
+    private fun encodeCustomCategoryLabel(value: String): String {
+        return java.net.URLEncoder.encode(value, Charsets.UTF_8.name())
+    }
+
+    private fun decodeCustomCategoryLabel(value: String): String {
+        return runCatching {
+            java.net.URLDecoder.decode(value, Charsets.UTF_8.name())
+        }.getOrDefault(value)
+    }
+
     private fun android.content.SharedPreferences.stringSet(key: String): Set<String> {
         return getStringSet(key, emptySet()).orEmpty().toSet()
     }
@@ -298,6 +399,7 @@ class LauncherPreferences(context: Context) {
         private const val KEY_THEME_PRESET = "theme_preset"
         private const val KEY_SETTINGS_LANGUAGE = "settings_language"
         private const val KEY_CATEGORY_OVERRIDES = "category_overrides"
+        private const val KEY_CUSTOM_CATEGORY_LABELS = "custom_category_labels"
         private const val KEY_MINIMAL_MODE = "minimal_mode"
         private const val KEY_BOOT_ANIMATION = "boot_animation"
         private const val KEY_DEFAULT_MUSIC_PACKAGE = "default_music_package"
@@ -305,6 +407,8 @@ class LauncherPreferences(context: Context) {
         private const val RECENT_SEPARATOR = "|"
         private const val CATEGORY_PAIR_SEPARATOR = "|"
         private const val CATEGORY_VALUE_SEPARATOR = "="
+        private const val CUSTOM_CATEGORY_PAIR_SEPARATOR = "|"
+        private const val CUSTOM_CATEGORY_VALUE_SEPARATOR = "="
         private const val MAX_RECENT_APPS = 24
     }
 }

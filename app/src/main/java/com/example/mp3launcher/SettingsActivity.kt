@@ -15,6 +15,7 @@ import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.CheckBox
+import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Spinner
@@ -251,7 +252,7 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun LinearLayout.addMusicAppSpinner() {
-        val candidates = apps.filter { it.category == AppCategory.MUSIC }
+        val candidates = apps.filterNot { it.isSettingsShortcut }
         val labels = listOf(text.none) + candidates.map { it.label.toString() }
         val selectedIndex = candidates.indexOfFirst {
             it.packageName.toString() == preferences.defaultMusicPackage
@@ -400,13 +401,93 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun showGroupPicker() {
-        val groups = listOf(AppCategory.MUSIC, AppCategory.SOCIAL, AppCategory.TOOLS, AppCategory.GAMES)
-        val labels = groups.map { localizedCategoryName(it) }.toTypedArray()
+        val groups = preferences.assignableCategories()
+        val labels = (listOf(text.createCustomGroup) + groups.map { localizedCategoryName(it) }).toTypedArray()
         AlertDialog.Builder(this)
             .setTitle(text.chooseGroup)
             .setItems(labels) { _, which ->
-                showAppsForGroup(groups[which])
+                if (which == 0) {
+                    showCreateCustomGroupDialog()
+                } else {
+                    showGroupActions(groups[which - 1])
+                }
             }
+            .show()
+    }
+
+    private fun showCreateCustomGroupDialog() {
+        val input = EditText(this).apply {
+            hint = this@SettingsActivity.text.customGroupName
+            setSingleLine(true)
+            setPadding(32.dp(), 16.dp(), 32.dp(), 16.dp())
+        }
+        AlertDialog.Builder(this)
+            .setTitle(text.createCustomGroup)
+            .setView(input)
+            .setPositiveButton(text.ok) { _, _ ->
+                val created = preferences.createCustomCategory(input.text.toString())
+                if (created != null) {
+                    apps = loadLaunchableApps()
+                    showAppsForGroup(created)
+                } else {
+                    AlertDialog.Builder(this)
+                        .setMessage(text.customGroupLimitReached)
+                        .setPositiveButton(text.ok, null)
+                        .show()
+                }
+            }
+            .setNegativeButton(text.cancel, null)
+            .show()
+    }
+
+    private fun showGroupActions(category: AppCategory) {
+        if (!category.isCustom) {
+            showAppsForGroup(category)
+            return
+        }
+
+        val actions = arrayOf(text.manageGroupApps, text.renameGroup, text.deleteGroup)
+        AlertDialog.Builder(this)
+            .setTitle(localizedCategoryName(category))
+            .setItems(actions) { _, which ->
+                when (which) {
+                    0 -> showAppsForGroup(category)
+                    1 -> showRenameCustomGroupDialog(category)
+                    2 -> confirmDeleteCustomGroup(category)
+                }
+            }
+            .show()
+    }
+
+    private fun showRenameCustomGroupDialog(category: AppCategory) {
+        val input = EditText(this).apply {
+            setText(localizedCategoryName(category))
+            selectAll()
+            setSingleLine(true)
+            setPadding(32.dp(), 16.dp(), 32.dp(), 16.dp())
+        }
+        AlertDialog.Builder(this)
+            .setTitle(text.renameGroup)
+            .setView(input)
+            .setPositiveButton(text.ok) { _, _ ->
+                preferences.setCustomCategoryLabel(category, input.text.toString())
+                apps = loadLaunchableApps()
+                buildContent()
+            }
+            .setNegativeButton(text.cancel, null)
+            .show()
+    }
+
+    private fun confirmDeleteCustomGroup(category: AppCategory) {
+        AlertDialog.Builder(this)
+            .setTitle(text.deleteGroup)
+            .setMessage(text.deleteGroupMessage)
+            .setPositiveButton(text.ok) { _, _ ->
+                preferences.deleteCustomCategory(category)
+                apps = loadLaunchableApps()
+                buildContent()
+            }
+            .setNegativeButton(text.cancel, null)
             .show()
     }
 
@@ -450,9 +531,10 @@ class SettingsActivity : AppCompatActivity() {
                 AppCategory.SOCIAL -> "社交"
                 AppCategory.TOOLS -> "工具"
                 AppCategory.GAMES -> "游戏"
+                else -> preferences.customCategoryLabel(category) ?: category.label
             }
         } else {
-            category.label
+            preferences.customCategoryLabel(category) ?: category.label
         }
     }
 

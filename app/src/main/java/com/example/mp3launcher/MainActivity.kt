@@ -20,6 +20,7 @@ import android.view.HapticFeedbackConstants
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -38,13 +39,20 @@ class MainActivity : AppCompatActivity() {
     internal lateinit var audioManager: AudioManager
     internal lateinit var appsAdapter: AppsAdapter
     internal val preferences by lazy { LauncherPreferences(this) }
-    internal var topScrollerGestureLockListener: RecyclerView.SimpleOnItemTouchListener? = null
     internal var topScrollerScrollListener: RecyclerView.OnScrollListener? = null
     internal var audioRouteLightAnimator: ObjectAnimator? = null
     internal var audioRouteLightKey: String? = null
+    internal var categoryIndicatorVisibleUntil: Long = 0L
 
     private val longPressHandler = Handler(Looper.getMainLooper())
     private var longPressRunnable: Runnable? = null
+    private var topScrollerLongPressRunnable: Runnable? = null
+    private var topScrollerTouchTracking = false
+    private var topScrollerHorizontalSwipe = false
+    private var topScrollerLongPressTriggered = false
+    private var topScrollerCategoryChanged = false
+    private var topScrollerDownRawX = 0f
+    private var topScrollerDownRawY = 0f
     private var isLongPress = false
     private var lastDisplayedCategory: AppCategory? = null
     private val LONG_PRESS_DELAY = 500L // 500ms for long press definition
@@ -189,6 +197,9 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         hideSystemBars()
         viewModel.refreshSettings()
+        binding.root.post {
+            showCategoryIndicator(viewModel.uiState.value.selectedCategory)
+        }
         requestMediaUpdate()
     }
 
@@ -274,7 +285,125 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+        if (handleTopScrollerGesture(ev)) return true
         return super.dispatchTouchEvent(ev)
+    }
+
+    private fun handleTopScrollerGesture(ev: MotionEvent): Boolean {
+        val action = ev.actionMasked
+        if (action == MotionEvent.ACTION_DOWN) {
+            if (!isInsideTopScroller(ev)) {
+                resetTopScrollerGesture()
+                return false
+            }
+            topScrollerTouchTracking = true
+            topScrollerHorizontalSwipe = false
+            topScrollerLongPressTriggered = false
+            topScrollerCategoryChanged = false
+            topScrollerDownRawX = ev.rawX
+            topScrollerDownRawY = ev.rawY
+            scheduleTopScrollerLongPress(ev)
+            return false
+        }
+
+        if (!topScrollerTouchTracking) return false
+
+        val dx = ev.rawX - topScrollerDownRawX
+        val dy = ev.rawY - topScrollerDownRawY
+        val touchSlop = ViewConfiguration.get(this).scaledTouchSlop.toFloat()
+
+        return when (action) {
+            MotionEvent.ACTION_MOVE -> {
+                if (topScrollerLongPressTriggered) return true
+                if (kotlin.math.abs(dx) > touchSlop || kotlin.math.abs(dy) > touchSlop) {
+                    cancelTopScrollerLongPress()
+                }
+                if (
+                    !topScrollerHorizontalSwipe &&
+                    kotlin.math.abs(dx) > touchSlop &&
+                    kotlin.math.abs(dx) > kotlin.math.abs(dy) * 1.2f
+                ) {
+                    topScrollerHorizontalSwipe = true
+                    binding.topScroller.stopScroll()
+                    cancelTopScrollerChildTouch(ev)
+                }
+                if (topScrollerHorizontalSwipe) {
+                    maybeChangeTopScrollerCategory(dx)
+                    true
+                } else {
+                    false
+                }
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                val shouldConsume = topScrollerHorizontalSwipe || topScrollerLongPressTriggered
+                if (topScrollerHorizontalSwipe && action == MotionEvent.ACTION_UP) {
+                    maybeChangeTopScrollerCategory(dx)
+                }
+                resetTopScrollerGesture()
+                shouldConsume
+            }
+            else -> false
+        }
+    }
+
+    private fun isInsideTopScroller(ev: MotionEvent): Boolean {
+        val rect = Rect()
+        binding.topScroller.getGlobalVisibleRect(rect)
+        return rect.contains(ev.rawX.toInt(), ev.rawY.toInt())
+    }
+
+    private fun scheduleTopScrollerLongPress(ev: MotionEvent) {
+        cancelTopScrollerLongPress()
+        val app = appUnderTopScrollerTouch(ev) ?: return
+        val runnable = Runnable {
+            topScrollerLongPressRunnable = null
+            topScrollerLongPressTriggered = true
+            binding.topScroller.stopScroll()
+            window.decorView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+            showAppActionMenu(app)
+        }
+        topScrollerLongPressRunnable = runnable
+        longPressHandler.postDelayed(
+            runnable,
+            ViewConfiguration.getLongPressTimeout().toLong()
+        )
+    }
+
+    private fun appUnderTopScrollerTouch(ev: MotionEvent): AppInfo? {
+        val location = IntArray(2)
+        binding.topScroller.getLocationOnScreen(location)
+        val localX = ev.rawX - location[0]
+        val localY = ev.rawY - location[1]
+        val child = binding.topScroller.findChildViewUnder(localX, localY) ?: return null
+        val position = binding.topScroller.getChildAdapterPosition(child)
+        if (position == RecyclerView.NO_POSITION) return null
+        return (binding.topScroller.adapter as? AppsAdapter)?.getAppAt(position)
+    }
+
+    private fun maybeChangeTopScrollerCategory(dx: Float) {
+        if (topScrollerCategoryChanged || kotlin.math.abs(dx) < 56f) return
+        viewModel.selectAdjacentCategory(if (dx < 0) 1 else -1)
+        topScrollerCategoryChanged = true
+    }
+
+    private fun cancelTopScrollerChildTouch(ev: MotionEvent) {
+        val cancelEvent = MotionEvent.obtain(ev)
+        cancelEvent.action = MotionEvent.ACTION_CANCEL
+        super.dispatchTouchEvent(cancelEvent)
+        cancelEvent.recycle()
+    }
+
+    private fun cancelTopScrollerLongPress() {
+        topScrollerLongPressRunnable?.let(longPressHandler::removeCallbacks)
+        topScrollerLongPressRunnable = null
+    }
+
+    private fun resetTopScrollerGesture() {
+        cancelTopScrollerLongPress()
+        topScrollerTouchTracking = false
+        topScrollerHorizontalSwipe = false
+        topScrollerLongPressTriggered = false
+        topScrollerCategoryChanged = false
     }
 
     internal fun getCurrentAudioRouteLabel(): String {

@@ -1,6 +1,8 @@
 package com.example.mp3launcher
 
 import android.animation.ObjectAnimator
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.content.Context
 import android.content.Intent
@@ -69,12 +71,32 @@ fun MainActivity.showAlphabetIndicator(letter: String) {
     binding.alphabetIndicator.handler?.removeCallbacksAndMessages(null) // Cancel previous fade out
     binding.alphabetIndicator.postDelayed({
         binding.alphabetIndicator.animate().alpha(0f).setDuration(500).start()
-    }, 1000) // Show for 1 second before fading
+    }, 1800)
 }
 
 fun MainActivity.showCategoryIndicator(category: AppCategory) {
     if (binding.searchEditText?.visibility == View.VISIBLE) return
-    showAlphabetIndicator(category.label)
+    categoryIndicatorVisibleUntil = System.currentTimeMillis() + 1800L
+    val label = localizedCategoryIndicator(category)
+    showAlphabetIndicator(label)
+}
+
+private fun MainActivity.localizedCategoryIndicator(category: AppCategory): String {
+    preferences.customCategoryLabel(category)?.let { return it }
+    val isChinese = SettingsText.resolve(this, preferences) === SettingsText.ZH_CN
+    return if (isChinese) {
+        when (category) {
+            AppCategory.RECENT,
+            AppCategory.ALL -> category.label
+            AppCategory.MUSIC -> "音乐"
+            AppCategory.SOCIAL -> "社交"
+            AppCategory.TOOLS -> "工具"
+            AppCategory.GAMES -> "游戏"
+            else -> category.label
+        }
+    } else {
+        category.label
+    }
 }
 
 fun MainActivity.updateAudioOutputDisplay() {
@@ -202,28 +224,38 @@ private fun colorControlLabels(root: View, color: Int) {
 }
 
 fun MainActivity.showBootAnimation() {
-    val text = SettingsText.resolve(this, preferences)
-    val loadingView = TextView(this).apply {
-        this.text = text.loading
-        textSize = 28f
-        setTextColor(viewModel.uiState.value.themePreset.lcdText)
-        setBackgroundColor(viewModel.uiState.value.themePreset.lcdBackground)
-        gravity = android.view.Gravity.CENTER
-        typeface = android.graphics.Typeface.MONOSPACE
+    val bootView = PixelCassetteBootView(this).apply {
+        loadingText = "LOADING..."
+        themePreset = viewModel.uiState.value.themePreset
         alpha = 0f
     }
+    val tapeAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+        duration = 1450L
+        interpolator = LinearInterpolator()
+        addUpdateListener { animator ->
+            bootView.progress = animator.animatedValue as Float
+        }
+    }
     binding.root.addView(
-        loadingView,
+        bootView,
         android.view.ViewGroup.LayoutParams.MATCH_PARENT,
         android.view.ViewGroup.LayoutParams.MATCH_PARENT
     )
-    loadingView.animate().alpha(1f).setDuration(120).withEndAction {
-        loadingView.postDelayed({
-            loadingView.animate().alpha(0f).setDuration(260).withEndAction {
-                binding.root.removeView(loadingView)
-            }.start()
-        }, 540)
-    }.start()
+    tapeAnimator.addListener(object : AnimatorListenerAdapter() {
+        override fun onAnimationEnd(animation: Animator) {
+            bootView.animate()
+                .alpha(0f)
+                .setDuration(220)
+                .withEndAction {
+                    if (bootView.parent != null) {
+                        binding.root.removeView(bootView)
+                    }
+                }
+                .start()
+        }
+    })
+    bootView.animate().alpha(1f).setDuration(120).start()
+    tapeAnimator.start()
 }
 
 fun MainActivity.promptForDefaultLauncherIfNeeded() {
@@ -243,7 +275,7 @@ fun MainActivity.promptForDefaultLauncherIfNeeded() {
 fun MainActivity.setupAppDrawer() {
     val orientation = resources.configuration.orientation
     val layoutManager = if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
-        GridLayoutManager(this, 6, RecyclerView.HORIZONTAL, false)
+        GridLayoutManager(this, 1, RecyclerView.VERTICAL, false)
     } else {
         GridLayoutManager(this, 6)
     }
@@ -266,9 +298,6 @@ fun MainActivity.setupAppDrawer() {
         }
     )
     binding.topScroller.adapter = appsAdapter
-    topScrollerGestureLockListener?.let(binding.topScroller::removeOnItemTouchListener)
-    topScrollerGestureLockListener = createCategoryGestureLockListener()
-    topScrollerGestureLockListener?.let(binding.topScroller::addOnItemTouchListener)
 
     topScrollerScrollListener?.let(binding.topScroller::removeOnScrollListener)
     topScrollerScrollListener = object : RecyclerView.OnScrollListener() {
@@ -277,6 +306,7 @@ fun MainActivity.setupAppDrawer() {
             val firstVisiblePosition = (recyclerView.layoutManager as GridLayoutManager).findFirstVisibleItemPosition()
             if (firstVisiblePosition != RecyclerView.NO_POSITION) {
                 (binding.topScroller.adapter as? AppsAdapter)?.getAppAt(firstVisiblePosition)?.let {
+                    if (System.currentTimeMillis() < categoryIndicatorVisibleUntil) return
                     val key = viewModel.getSortKey(it.label.toString())
                     showAlphabetIndicator(key.toString())
                 }
@@ -325,134 +355,6 @@ private fun MainActivity.requestUninstall(packageName: String) {
     startActivity(intent)
 }
 
-private fun MainActivity.createCategoryGestureLockListener(): RecyclerView.SimpleOnItemTouchListener {
-    var downX = 0f
-    var downY = 0f
-    var gestureMode = GestureMode.UNDECIDED
-    var categoryChanged = false
-    var longPressTriggered = false
-    var pendingLongPress: Runnable? = null
-    val touchSlop = 28f
-
-    fun clearPendingLongPress(rv: RecyclerView) {
-        pendingLongPress?.let(rv::removeCallbacks)
-        pendingLongPress = null
-    }
-
-    fun appUnderTouch(rv: RecyclerView, event: MotionEvent): AppInfo? {
-        val child = rv.findChildViewUnder(event.x, event.y) ?: return null
-        val position = rv.getChildAdapterPosition(child)
-        if (position == RecyclerView.NO_POSITION) return null
-        return (rv.adapter as? AppsAdapter)?.getAppAt(position)
-    }
-
-    return object : RecyclerView.SimpleOnItemTouchListener() {
-        override fun onInterceptTouchEvent(rv: RecyclerView, event: MotionEvent): Boolean {
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    downX = event.x
-                    downY = event.y
-                    gestureMode = GestureMode.UNDECIDED
-                    categoryChanged = false
-                    longPressTriggered = false
-                    clearPendingLongPress(rv)
-                    appUnderTouch(rv, event)?.let { app ->
-                        pendingLongPress = Runnable {
-                            pendingLongPress = null
-                            longPressTriggered = true
-                            gestureMode = GestureMode.LONG_PRESS_MENU
-                            rv.parent?.requestDisallowInterceptTouchEvent(true)
-                            window.decorView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                            showAppActionMenu(app)
-                        }
-                        rv.postDelayed(
-                            pendingLongPress,
-                            ViewConfiguration.getLongPressTimeout().toLong()
-                        )
-                    }
-                    return false
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    val dx = event.x - downX
-                    val dy = event.y - downY
-                    if (longPressTriggered) return true
-                    if (kotlin.math.abs(dx) > touchSlop || kotlin.math.abs(dy) > touchSlop) {
-                        clearPendingLongPress(rv)
-                    }
-                    if (gestureMode == GestureMode.UNDECIDED && (kotlin.math.abs(dx) > touchSlop || kotlin.math.abs(dy) > touchSlop)) {
-                        gestureMode = if (kotlin.math.abs(dx) > kotlin.math.abs(dy) * 1.2f) {
-                            GestureMode.HORIZONTAL_CATEGORY
-                        } else {
-                            GestureMode.SCROLLER
-                        }
-                        if (gestureMode == GestureMode.HORIZONTAL_CATEGORY) {
-                            rv.parent?.requestDisallowInterceptTouchEvent(true)
-                        }
-                    }
-                    return gestureMode == GestureMode.HORIZONTAL_CATEGORY
-                }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    clearPendingLongPress(rv)
-                    if (longPressTriggered) {
-                        gestureMode = GestureMode.UNDECIDED
-                        categoryChanged = false
-                        longPressTriggered = false
-                        return true
-                    }
-                    val shouldIntercept = gestureMode == GestureMode.HORIZONTAL_CATEGORY
-                    if (shouldIntercept && event.actionMasked == MotionEvent.ACTION_UP) {
-                        changeCategoryFromSwipe(event.x - downX)
-                    }
-                    gestureMode = GestureMode.UNDECIDED
-                    categoryChanged = false
-                    return shouldIntercept
-                }
-            }
-            return false
-        }
-
-        override fun onTouchEvent(rv: RecyclerView, event: MotionEvent) {
-            if (gestureMode == GestureMode.LONG_PRESS_MENU) {
-                if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) {
-                    clearPendingLongPress(rv)
-                    gestureMode = GestureMode.UNDECIDED
-                    longPressTriggered = false
-                }
-                return
-            }
-            if (gestureMode != GestureMode.HORIZONTAL_CATEGORY) return
-            when (event.actionMasked) {
-                MotionEvent.ACTION_MOVE -> {
-                    if (!categoryChanged) {
-                        val dx = event.x - downX
-                        if (kotlin.math.abs(dx) > 80f) {
-                            changeCategoryFromSwipe(dx)
-                            categoryChanged = true
-                        }
-                    }
-                }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    clearPendingLongPress(rv)
-                    gestureMode = GestureMode.UNDECIDED
-                    categoryChanged = false
-                }
-            }
-        }
-
-        private fun changeCategoryFromSwipe(dx: Float) {
-            if (kotlin.math.abs(dx) <= 80f) return
-            viewModel.selectAdjacentCategory(if (dx < 0) 1 else -1)
-        }
-    }
-}
-
-private enum class GestureMode {
-    UNDECIDED,
-    SCROLLER,
-    HORIZONTAL_CATEGORY,
-    LONG_PRESS_MENU
-}
-
 fun MainActivity.setupMediaControls() {
     binding.holdSwitch.onCheckedChange = { enabled ->
         binding.holdSwitch.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
@@ -471,19 +373,37 @@ fun MainActivity.setupMediaControls() {
     )
 
     controls.forEach { (button, label) ->
-        button.setOnTouchListener(createRetroButtonListener(label) {
-            requestMediaUpdate()
-            when (it.id) {
-                R.id.play_pause_button -> handlePlayPausePressed()
-                R.id.next_button -> MediaNotificationListenerService.mediaController?.transportControls?.skipToNext()
-                R.id.prev_button -> MediaNotificationListenerService.mediaController?.transportControls?.skipToPrevious()
-                R.id.rewind_button -> MediaNotificationListenerService.mediaController?.transportControls?.rewind()
-                R.id.ff_button -> MediaNotificationListenerService.mediaController?.transportControls?.fastForward()
-                R.id.vol_up_button -> audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_RAISE, 0)
-                R.id.vol_down_button -> audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER, 0)
+        val onLongClickAction: ((View) -> Boolean)? = if (button.id == R.id.play_pause_button) {
+            { openDefaultMusicApp() }
+        } else {
+            null
+        }
+        button.setOnTouchListener(
+            createRetroButtonListener(
+                label = label,
+                onLongClickAction = onLongClickAction
+            ) {
+                requestMediaUpdate()
+                when (it.id) {
+                    R.id.play_pause_button -> handlePlayPausePressed()
+                    R.id.next_button -> MediaNotificationListenerService.mediaController?.transportControls?.skipToNext()
+                    R.id.prev_button -> MediaNotificationListenerService.mediaController?.transportControls?.skipToPrevious()
+                    R.id.rewind_button -> MediaNotificationListenerService.mediaController?.transportControls?.rewind()
+                    R.id.ff_button -> MediaNotificationListenerService.mediaController?.transportControls?.fastForward()
+                    R.id.vol_up_button -> audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_RAISE, 0)
+                    R.id.vol_down_button -> audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER, 0)
+                }
             }
-        })
+        )
     }
+}
+
+private fun MainActivity.openDefaultMusicApp(): Boolean {
+    val packageName = preferences.defaultMusicPackage ?: return false
+    val launchIntent = packageManager.getLaunchIntentForPackage(packageName) ?: return false
+    window.decorView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+    startActivity(launchIntent)
+    return true
 }
 
 private fun MainActivity.handlePlayPausePressed() {
@@ -505,16 +425,54 @@ private fun MainActivity.handlePlayPausePressed() {
     MediaNotificationListenerService.mediaController?.transportControls?.play()
 }
 
-fun MainActivity.createRetroButtonListener(label: View? = null, onClickAction: (View) -> Unit): View.OnTouchListener {
+fun MainActivity.createRetroButtonListener(
+    label: View? = null,
+    onLongClickAction: ((View) -> Boolean)? = null,
+    onClickAction: (View) -> Unit
+): View.OnTouchListener {
+    var pendingLongPress: Runnable? = null
+    var longPressTriggered = false
+    var downX = 0f
+    var downY = 0f
+    val touchSlop = ViewConfiguration.get(this).scaledTouchSlop
+
+    fun clearPendingLongPress(view: View) {
+        pendingLongPress?.let(view::removeCallbacks)
+        pendingLongPress = null
+    }
+
     return View.OnTouchListener { v, event ->
-        when (event.action) {
+        when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
+                downX = event.x
+                downY = event.y
+                longPressTriggered = false
                 animateControlPress(v, label, pressed = true)
                 v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                if (onLongClickAction != null) {
+                    clearPendingLongPress(v)
+                    pendingLongPress = Runnable {
+                        pendingLongPress = null
+                        longPressTriggered = onLongClickAction.invoke(v)
+                    }
+                    v.postDelayed(pendingLongPress, ViewConfiguration.getLongPressTimeout().toLong())
+                }
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (
+                    kotlin.math.abs(event.x - downX) > touchSlop ||
+                    kotlin.math.abs(event.y - downY) > touchSlop
+                ) {
+                    clearPendingLongPress(v)
+                }
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                clearPendingLongPress(v)
                 animateControlPress(v, label, pressed = false)
-                if (event.action == MotionEvent.ACTION_UP) onClickAction.invoke(v)
+                if (event.actionMasked == MotionEvent.ACTION_UP && !longPressTriggered) {
+                    onClickAction.invoke(v)
+                }
+                longPressTriggered = false
             }
         }
         true

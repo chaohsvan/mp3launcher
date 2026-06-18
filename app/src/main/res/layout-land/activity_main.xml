@@ -56,7 +56,7 @@
             android:layout_margin="16dp"
             android:background="@drawable/lcd_screen_background"
             android:padding="12dp"
-            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintBottom_toTopOf="@+id/lcd_status_strip"
             app:layout_constraintEnd_toStartOf="@+id/controls_container"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
@@ -253,7 +253,7 @@
             android:layout_marginEnd="16dp"
             android:background="@drawable/control_panel_background"
             android:padding="12dp"
-            app:layout_constraintBottom_toBottomOf="@+id/lcd_screen"
+            app:layout_constraintBottom_toBottomOf="@+id/lcd_status_strip"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@+id/lcd_screen"
             app:layout_constraintTop_toTopOf="@+id/lcd_screen">
@@ -438,23 +438,86 @@
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <com.example.mp3launcher.MechanicalHoldSwitchView
-            android:id="@+id/hold_switch"
-            android:layout_width="108dp"
-            android:layout_height="38dp"
-            android:layout_marginStart="18dp"
-            android:layout_marginBottom="18dp"
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/lcd_status_strip"
+            android:layout_width="0dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="12dp"
+            android:layout_marginBottom="16dp"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent" />
+            app:layout_constraintEnd_toStartOf="@+id/controls_container"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/lcd_screen">
 
-        <View
-            android:id="@+id/audio_route_light"
-            android:layout_width="16dp"
-            android:layout_height="16dp"
-            android:layout_marginStart="18dp"
-            android:layout_marginBottom="29dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toEndOf="@+id/hold_switch" />
+            <com.example.mp3launcher.MechanicalHoldSwitchView
+                android:id="@+id/hold_switch"
+                android:layout_width="86dp"
+                android:layout_height="30dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <View
+                android:id="@+id/audio_route_light"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginStart="12dp"
+                app:layout_constraintBottom_toBottomOf="@+id/hold_switch"
+                app:layout_constraintStart_toEndOf="@+id/hold_switch"
+                app:layout_constraintTop_toTopOf="@+id/hold_switch" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:orientation="vertical"
+                app:layout_constraintBottom_toBottomOf="@+id/hold_switch"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/audio_route_light"
+                app:layout_constraintTop_toTopOf="@+id/hold_switch">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-black"
+                    android:includeFontPadding="false"
+                    android:letterSpacing="0.15"
+                    android:text="DIGITAL MEDIA SYSTEM"
+                    android:textColor="#B0B0B0"
+                    android:textSize="9sp"
+                    tools:ignore="SmallSp" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-bold"
+                        android:includeFontPadding="false"
+                        android:letterSpacing="0.1"
+                        android:text="designed by "
+                        android:textColor="#606060"
+                        android:textSize="7sp"
+                        tools:ignore="SmallSp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/zpix"
+                        android:includeFontPadding="false"
+                        android:letterSpacing="0.1"
+                        android:text="xel"
+                        android:textColor="#606060"
+                        android:textSize="7sp"
+                        tools:ignore="SmallSp" />
+                </LinearLayout>
+            </LinearLayout>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
