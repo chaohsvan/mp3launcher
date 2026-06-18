@@ -40,8 +40,11 @@ class MediaNotificationListenerService : NotificationListenerService() {
 
     override fun onListenerConnected() {
         super.onListenerConnected()
+        LegacyMediaControlNotification.dismiss(this)
+        ScreenOffVolumeKeySession.start(this)
         // When the service is connected, check for any active media notifications
         activeNotifications.forEach { sbn ->
+            if (sbn.packageName == packageName) return@forEach
             if (sbn.notification.extras.containsKey(Notification.EXTRA_MEDIA_SESSION)) {
                 handleNotification(sbn)
                 return // Process the first found media notification and exit
@@ -50,16 +53,21 @@ class MediaNotificationListenerService : NotificationListenerService() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_REQUEST_MEDIA_UPDATE) {
-            mediaController?.let {
-                it.metadata?.let { metadata -> sendMediaUpdate(metadata) }
-                it.playbackState?.let { state -> sendPlaybackStateUpdate(state) }
+        LegacyMediaControlNotification.dismiss(this)
+        ScreenOffVolumeKeySession.start(this)
+        when (intent?.action) {
+            ACTION_REQUEST_MEDIA_UPDATE -> {
+                mediaController?.let {
+                    it.metadata?.let { metadata -> sendMediaUpdate(metadata) }
+                    it.playbackState?.let { state -> sendPlaybackStateUpdate(state) }
+                }
             }
         }
         return START_STICKY
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
+        if (sbn.packageName == packageName) return
         handleNotification(sbn)
     }
 
@@ -86,6 +94,7 @@ class MediaNotificationListenerService : NotificationListenerService() {
 
     override fun onNotificationRemoved(sbn: StatusBarNotification?) {
         super.onNotificationRemoved(sbn)
+        if (sbn?.packageName == packageName) return
         if (sbn?.notification?.extras?.containsKey(Notification.EXTRA_MEDIA_SESSION) == true) {
             val token = sbn.notification.extras.getParcelableCompat<MediaSession.Token>(
                 Notification.EXTRA_MEDIA_SESSION

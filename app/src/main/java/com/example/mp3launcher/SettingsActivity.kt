@@ -89,6 +89,16 @@ class SettingsActivity : AppCompatActivity() {
             ) {
                 startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
             }
+            addButton(
+                label = if (isLockScreenVolumeKeyServiceEnabled()) {
+                    text.accessibilitySettingsOn
+                } else {
+                    text.accessibilitySettingsOpen
+                },
+                description = text.accessibilitySettingsDescription
+            ) {
+                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            }
             addButton(text.defaultLauncherPrompt, text.defaultLauncherDescription) {
                 openDefaultLauncherSettings()
                 preferences.hasPromptedDefaultLauncher = true
@@ -246,7 +256,8 @@ class SettingsActivity : AppCompatActivity() {
             setSelection(values.indexOf(selected).coerceAtLeast(0), false)
             onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                    onSelected(values[position])
+                    val next = values[position]
+                    if (next != selected) onSelected(next)
                 }
 
                 override fun onNothingSelected(parent: AdapterView<*>?) = Unit
@@ -273,7 +284,10 @@ class SettingsActivity : AppCompatActivity() {
             setSelection(selectedIndex, false)
             onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                    preferences.defaultMusicPackage = candidates.getOrNull(position - 1)?.packageName?.toString()
+                    val nextPackage = candidates.getOrNull(position - 1)?.packageName?.toString()
+                    if (nextPackage != preferences.defaultMusicPackage) {
+                        preferences.defaultMusicPackage = nextPackage
+                    }
                 }
 
                 override fun onNothingSelected(parent: AdapterView<*>?) = Unit
@@ -545,6 +559,12 @@ class SettingsActivity : AppCompatActivity() {
         val enabledListeners = Settings.Secure.getString(contentResolver, "enabled_notification_listeners")
         val componentName = ComponentName(this, MediaNotificationListenerService::class.java)
         return enabledListeners?.contains(componentName.flattenToString()) == true
+    }
+
+    private fun isLockScreenVolumeKeyServiceEnabled(): Boolean {
+        val enabledServices = Settings.Secure.getString(contentResolver, "enabled_accessibility_services")
+        val componentName = ComponentName(this, LockScreenVolumeKeyService::class.java)
+        return enabledServices?.split(':')?.any { it.equals(componentName.flattenToString(), ignoreCase = true) } == true
     }
 
     private fun openDefaultLauncherSettings() {

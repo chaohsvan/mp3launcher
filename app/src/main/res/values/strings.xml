@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">mp3launcher</string>
+    <string name="lock_screen_volume_key_service_label">MP3 Launcher lock screen volume keys</string>
+    <string name="lock_screen_volume_key_service_description">Lets MP3 Launcher use the physical volume keys to switch tracks while the phone is locked.</string>
 </resources>
