@@ -230,7 +230,7 @@ fun MainActivity.showBootAnimation() {
         alpha = 0f
     }
     val tapeAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
-        duration = 1450L
+        duration = 900L
         interpolator = LinearInterpolator()
         addUpdateListener { animator ->
             bootView.progress = animator.animatedValue as Float
@@ -245,7 +245,7 @@ fun MainActivity.showBootAnimation() {
         override fun onAnimationEnd(animation: Animator) {
             bootView.animate()
                 .alpha(0f)
-                .setDuration(220)
+                .setDuration(150)
                 .withEndAction {
                     if (bootView.parent != null) {
                         binding.root.removeView(bootView)
@@ -254,7 +254,7 @@ fun MainActivity.showBootAnimation() {
                 .start()
         }
     })
-    bootView.animate().alpha(1f).setDuration(120).start()
+    bootView.animate().alpha(1f).setDuration(80).start()
     tapeAnimator.start()
 }
 
@@ -388,8 +388,8 @@ fun MainActivity.setupMediaControls() {
                 requestMediaUpdate()
                 when (it.id) {
                     R.id.play_pause_button -> handlePlayPausePressed()
-                    R.id.next_button -> MediaNotificationListenerService.mediaController?.transportControls?.skipToNext()
-                    R.id.prev_button -> MediaNotificationListenerService.mediaController?.transportControls?.skipToPrevious()
+                    R.id.next_button -> MediaCommandDispatcher.next()
+                    R.id.prev_button -> MediaCommandDispatcher.previous()
                     R.id.rewind_button -> MediaNotificationListenerService.mediaController?.transportControls?.rewind()
                     R.id.ff_button -> MediaNotificationListenerService.mediaController?.transportControls?.fastForward()
                     R.id.vol_up_button -> audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_RAISE, 0)
@@ -442,9 +442,9 @@ private fun MainActivity.handleLcdTrackSwipe(direction: Int) {
     window.decorView.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
     animateLcdTrackSwipe(direction)
     if (direction > 0) {
-        MediaNotificationListenerService.mediaController?.transportControls?.skipToNext()
+        MediaCommandDispatcher.next()
     } else {
-        MediaNotificationListenerService.mediaController?.transportControls?.skipToPrevious()
+        MediaCommandDispatcher.previous()
     }
 }
 
@@ -486,7 +486,7 @@ private fun MainActivity.openDefaultMusicApp(): Boolean {
 private fun MainActivity.handlePlayPausePressed() {
     val state = viewModel.uiState.value
     if (state.isPlaying) {
-        MediaNotificationListenerService.mediaController?.transportControls?.pause()
+        MediaCommandDispatcher.pause()
         return
     }
 
@@ -499,7 +499,7 @@ private fun MainActivity.handlePlayPausePressed() {
         }
     }
 
-    MediaNotificationListenerService.mediaController?.transportControls?.play()
+    MediaCommandDispatcher.play()
 }
 
 fun MainActivity.createRetroButtonListener(

@@ -226,11 +226,7 @@ class MainActivity : AppCompatActivity() {
                     isLongPress = true
                     window.decorView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                     // Toggle play/pause
-                    if (viewModel.uiState.value.isPlaying) {
-                        MediaNotificationListenerService.mediaController?.transportControls?.pause()
-                    } else {
-                        MediaNotificationListenerService.mediaController?.transportControls?.play()
-                    }
+                    MediaCommandDispatcher.togglePlayPause()
                 }
                 longPressRunnable?.let { longPressHandler.postDelayed(it, LONG_PRESS_DELAY) }
             }
@@ -258,9 +254,9 @@ class MainActivity : AppCompatActivity() {
                     updateVolumeDisplay()
                 } else {
                     if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
-                        MediaNotificationListenerService.mediaController?.transportControls?.skipToPrevious()
+                        MediaCommandDispatcher.previous()
                     } else {
-                        MediaNotificationListenerService.mediaController?.transportControls?.skipToNext()
+                        MediaCommandDispatcher.next()
                     }
                 }
             }
