@@ -95,6 +95,11 @@ data class SettingsText(
                 ThemePreset.TRANSPARENT_IPOD -> "透明 iPod"
                 ThemePreset.GAME_BOY -> "Game Boy"
                 ThemePreset.WALKMAN -> "Walkman"
+                ThemePreset.RED_CASSETTE -> "红色磁带机"
+                ThemePreset.ARCTIC_MINIDISC -> "冰蓝 MiniDisc"
+                ThemePreset.MINT_CREAM -> "薄荷奶油"
+                ThemePreset.MIDNIGHT_PURPLE -> "午夜紫"
+                ThemePreset.SUNSET_RADIO -> "日落收音机"
             }
             else -> theme.label
         }
