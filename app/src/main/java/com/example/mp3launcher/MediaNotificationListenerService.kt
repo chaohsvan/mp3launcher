@@ -41,7 +41,7 @@ class MediaNotificationListenerService : NotificationListenerService() {
     override fun onListenerConnected() {
         super.onListenerConnected()
         LegacyMediaControlNotification.dismiss(this)
-        ScreenOffVolumeKeySession.start(this)
+        ScreenOffVolumeKeySession.sync(this)
         // When the service is connected, check for any active media notifications
         activeNotifications.forEach { sbn ->
             if (sbn.packageName == packageName) return@forEach
@@ -54,7 +54,7 @@ class MediaNotificationListenerService : NotificationListenerService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         LegacyMediaControlNotification.dismiss(this)
-        ScreenOffVolumeKeySession.start(this)
+        ScreenOffVolumeKeySession.sync(this)
         when (intent?.action) {
             ACTION_REQUEST_MEDIA_UPDATE -> {
                 mediaController?.let {

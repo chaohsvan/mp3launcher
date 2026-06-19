@@ -90,7 +90,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         LegacyMediaControlNotification.dismiss(this)
-        ScreenOffVolumeKeySession.start(this)
+        ScreenOffVolumeKeySession.sync(this)
 
         if (!isNotificationServiceEnabled()) {
             startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
@@ -202,6 +202,7 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         hideSystemBars()
         viewModel.refreshSettings()
+        ScreenOffVolumeKeySession.sync(this)
         binding.root.post {
             showCategoryIndicator(viewModel.uiState.value.selectedCategory)
         }

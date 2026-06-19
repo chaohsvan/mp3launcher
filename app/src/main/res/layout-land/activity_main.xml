@@ -252,6 +252,7 @@
             android:layout_height="0dp"
             android:layout_marginEnd="16dp"
             android:background="@drawable/control_panel_background"
+            android:clipToOutline="true"
             android:padding="12dp"
             app:layout_constraintBottom_toBottomOf="@+id/lcd_status_strip"
             app:layout_constraintEnd_toEndOf="parent"
@@ -441,7 +442,7 @@
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/lcd_status_strip"
             android:layout_width="0dp"
-            android:layout_height="32dp"
+            android:layout_height="56dp"
             android:layout_marginStart="16dp"
             android:layout_marginEnd="12dp"
             android:layout_marginBottom="16dp"
@@ -450,70 +451,140 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/lcd_screen">
 
-            <com.example.mp3launcher.MechanicalHoldSwitchView
-                android:id="@+id/hold_switch"
-                android:layout_width="86dp"
-                android:layout_height="30dp"
+            <LinearLayout
+                android:id="@+id/switch_stack"
+                android:layout_width="116dp"
+                android:layout_height="50dp"
+                android:gravity="bottom"
+                android:orientation="vertical"
+                android:translationY="3dp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintTop_toTopOf="parent">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="24dp"
+                    android:layout_marginBottom="2dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <com.example.mp3launcher.MechanicalHoldSwitchView
+                        android:id="@+id/volume_key_switch"
+                        android:layout_width="76dp"
+                        android:layout_height="24dp" />
+
+                    <TextView
+                        android:id="@+id/volume_key_switch_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:fontFamily="@font/press_start_2p_regular"
+                        android:includeFontPadding="false"
+                        android:text="&lt;&gt;"
+                        android:textColor="#464C50"
+                        android:textSize="6sp"
+                        tools:ignore="SmallSp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="24dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <com.example.mp3launcher.MechanicalHoldSwitchView
+                        android:id="@+id/hold_switch"
+                        android:layout_width="76dp"
+                        android:layout_height="24dp" />
+
+                    <TextView
+                        android:id="@+id/hold_switch_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:fontFamily="@font/press_start_2p_regular"
+                        android:includeFontPadding="false"
+                        android:text="HOLD"
+                        android:textColor="#464C50"
+                        android:textSize="6sp"
+                        tools:ignore="SmallSp" />
+                </LinearLayout>
+            </LinearLayout>
 
             <View
                 android:id="@+id/audio_route_light"
                 android:layout_width="16dp"
                 android:layout_height="16dp"
-                android:layout_marginStart="12dp"
-                app:layout_constraintBottom_toBottomOf="@+id/hold_switch"
-                app:layout_constraintStart_toEndOf="@+id/hold_switch"
-                app:layout_constraintTop_toTopOf="@+id/hold_switch" />
+                android:layout_marginStart="10dp"
+                app:layout_constraintBottom_toBottomOf="@+id/switch_stack"
+                app:layout_constraintStart_toEndOf="@+id/switch_stack"
+                app:layout_constraintTop_toTopOf="@+id/switch_stack" />
 
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:gravity="end"
-                android:orientation="vertical"
-                app:layout_constraintBottom_toBottomOf="@+id/hold_switch"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                app:layout_constraintBottom_toBottomOf="@+id/switch_stack"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@+id/audio_route_light"
-                app:layout_constraintTop_toTopOf="@+id/hold_switch">
+                app:layout_constraintTop_toTopOf="@+id/switch_stack">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="sans-serif-black"
-                    android:includeFontPadding="false"
-                    android:letterSpacing="0.15"
-                    android:text="DIGITAL MEDIA SYSTEM"
-                    android:textColor="#B0B0B0"
-                    android:textSize="9sp"
-                    tools:ignore="SmallSp" />
+                <View
+                    android:id="@+id/device_title_divider"
+                    android:layout_width="2dp"
+                    android:layout_height="34dp"
+                    android:layout_marginEnd="12dp"
+                    android:background="#565C60" />
 
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:gravity="end"
+                    android:orientation="vertical">
 
                     <TextView
+                        android:id="@+id/device_title_label"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:fontFamily="sans-serif-bold"
+                        android:fontFamily="sans-serif-black"
                         android:includeFontPadding="false"
-                        android:letterSpacing="0.1"
-                        android:text="designed by "
-                        android:textColor="#606060"
-                        android:textSize="7sp"
+                        android:letterSpacing="0.12"
+                        android:text="DIGITAL MEDIA SYSTEM"
+                        android:textColor="#565C60"
+                        android:textSize="9sp"
                         tools:ignore="SmallSp" />
 
-                    <TextView
+                    <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:fontFamily="@font/zpix"
-                        android:includeFontPadding="false"
-                        android:letterSpacing="0.1"
-                        android:text="xel"
-                        android:textColor="#606060"
-                        android:textSize="7sp"
-                        tools:ignore="SmallSp" />
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/device_signature_prefix"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="sans-serif-bold"
+                            android:includeFontPadding="false"
+                            android:letterSpacing="0.08"
+                            android:text="designed by "
+                            android:textColor="#4B5054"
+                            android:textSize="7sp"
+                            tools:ignore="SmallSp" />
+
+                        <TextView
+                            android:id="@+id/device_signature_name"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/zpix"
+                            android:includeFontPadding="false"
+                            android:letterSpacing="0.08"
+                            android:text="xel"
+                            android:textColor="#4B5054"
+                            android:textSize="7sp"
+                            tools:ignore="SmallSp" />
+                    </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
 

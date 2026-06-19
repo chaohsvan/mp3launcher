@@ -155,19 +155,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 label = "SETTINGS",
                 packageName = AppInfo.SETTINGS_PACKAGE_NAME,
                 icon = requireNotNull(getApplication<Application>().getDrawable(R.drawable.ic_settings)),
-                isPinned = true,
                 category = AppCategory.TOOLS,
                 isSettingsShortcut = true
             )
 
             val collator = Collator.getInstance()
-            val sortedApps = appInfos.sortedWith(
+            val sortedApps = (appInfos + settingsApp).sortedWith(
                 compareByDescending<AppInfo> { it.isPinned }
                     .thenBy { getSortKey(it.label.toString()) }
                     .thenBy(collator) { it.label.toString() }
             )
 
-            allApps = listOf(settingsApp) + sortedApps
+            allApps = sortedApps
 
             withContext(Dispatchers.Main) {
                 applyAppFilters()
@@ -192,11 +191,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     if (recentApps.isEmpty()) {
                         allApps
                     } else {
-                        allApps.filter { it.isSettingsShortcut } + recentApps.filterNot { it.isSettingsShortcut }
+                        recentApps
                     }
                 }
                 AppCategory.ALL -> allApps
-                else -> allApps.filter { it.isSettingsShortcut || it.category == selectedCategory }
+                else -> allApps.filter { it.category == selectedCategory }
             }
             val filteredApps = if (searchQuery.isBlank()) {
                 appsForCategory

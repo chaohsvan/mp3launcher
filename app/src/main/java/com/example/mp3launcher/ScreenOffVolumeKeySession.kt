@@ -17,6 +17,14 @@ object ScreenOffVolumeKeySession {
 
     private var session: MediaSession? = null
 
+    fun sync(context: Context) {
+        if (LauncherPreferences(context).volumeKeyMode == VolumeKeyMode.TRACK_CONTROL) {
+            start(context)
+        } else {
+            stop()
+        }
+    }
+
     fun start(context: Context) {
         val appContext = context.applicationContext
         if (session != null) return

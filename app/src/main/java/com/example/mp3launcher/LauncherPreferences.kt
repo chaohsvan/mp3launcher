@@ -339,7 +339,6 @@ class LauncherPreferences(context: Context) {
     }
 
     fun recordLaunch(packageName: String) {
-        if (packageName == AppInfo.SETTINGS_PACKAGE_NAME) return
         val next = buildList {
             add(packageName)
             addAll(recentApps.filterNot { it == packageName })

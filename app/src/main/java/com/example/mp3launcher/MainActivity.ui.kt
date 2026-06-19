@@ -111,13 +111,23 @@ fun MainActivity.applyThemePreset(theme: ThemePreset) {
     binding.mainDeviceBody?.background = insetPanelDrawable(theme.deviceBackground, 34f)
     binding.lcdScreen.background = recessedDrawable(theme.lcdBackground, 18f)
     binding.albumArt.background = recessedDrawable(theme.lcdText, 8f)
-    binding.controlsContainer.background = insetPanelDrawable(theme.controlBackground, 22f)
-    binding.controlPanel?.background = recessedDrawable(theme.controlBackground, 18f)
-    binding.holdSwitch.setThemeColors(
-        knob = theme.accent,
-        active = theme.accent,
-        label = theme.labelText
-    )
+    binding.controlsContainer.background = insetPanelDrawable(theme.controlBackground, 30f)
+    binding.controlPanel?.background = recessedDrawable(theme.controlBackground, 28f)
+    listOf(binding.holdSwitch, binding.volumeKeySwitch).forEach { switch ->
+        switch.setThemeColors(
+            knob = theme.accent,
+            active = theme.accent,
+            label = theme.labelText
+        )
+    }
+    val isLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val deviceTitleColor = if (isLandscape) Color.rgb(70, 76, 80) else theme.labelText
+    val deviceSignatureColor = if (isLandscape) Color.rgb(80, 84, 88) else adjustColorBrightness(theme.labelText, 0.58f)
+    binding.holdSwitchLabel.setTextColor(if (isLandscape) deviceTitleColor else theme.labelText)
+    binding.volumeKeySwitchLabel.setTextColor(if (isLandscape) deviceTitleColor else theme.labelText)
+    binding.deviceTitleLabel?.setTextColor(deviceTitleColor)
+    binding.deviceSignaturePrefix?.setTextColor(deviceSignatureColor)
+    binding.deviceSignatureName?.setTextColor(deviceSignatureColor)
     binding.songTitle.setTextColor(theme.lcdText)
     binding.artistName.setTextColor(theme.lcdTextFaded)
     binding.playbackStatus.setTextColor(theme.lcdText)
@@ -128,7 +138,7 @@ fun MainActivity.applyThemePreset(theme: ThemePreset) {
     binding.alphabetIndicator.setTextColor(theme.lcdBackground)
     binding.progressBar.progressTintList = ColorStateList.valueOf(theme.lcdText)
     binding.progressBar.progressBackgroundTintList = ColorStateList.valueOf(theme.lcdTextFaded)
-    binding.playPauseButton.background = buttonStateDrawable(theme.playButtonBackground, theme.buttonPressed, 16f)
+    binding.playPauseButton.background = buttonStateDrawable(theme.playButtonBackground, theme.buttonPressed, 22f)
     listOf(
         binding.nextButton,
         binding.prevButton,
@@ -137,7 +147,7 @@ fun MainActivity.applyThemePreset(theme: ThemePreset) {
         binding.volUpButton,
         binding.volDownButton
     ).forEach { button ->
-        button.background = buttonStateDrawable(theme.buttonBackground, theme.buttonPressed, 12f)
+        button.background = buttonStateDrawable(theme.buttonBackground, theme.buttonPressed, 18f)
     }
     listOf(
         binding.playPauseButton,
@@ -159,6 +169,11 @@ fun MainActivity.applyLauncherMode(minimalMode: Boolean) {
     binding.searchEditText?.visibility = if (minimalMode) View.INVISIBLE else binding.searchEditText?.visibility ?: View.INVISIBLE
     binding.alphabetIndicator.visibility = if (minimalMode) View.INVISIBLE else View.VISIBLE
     binding.holdSwitch.setChecked(minimalMode, animate = true, notify = false)
+    binding.volumeKeySwitch.setChecked(
+        viewModel.uiState.value.volumeKeyMode == VolumeKeyMode.TRACK_CONTROL,
+        animate = true,
+        notify = false
+    )
 }
 
 fun MainActivity.updateAudioRouteLight() {
@@ -288,6 +303,7 @@ fun MainActivity.setupAppDrawer() {
                 showSearch()
             } else if (app.isSettingsShortcut) {
                 hideSearch()
+                viewModel.recordAppLaunch(app)
                 startActivity(Intent(this, SettingsActivity::class.java))
             } else {
                 hideSearch()
@@ -326,8 +342,7 @@ fun MainActivity.showAppActionMenu(app: AppInfo) {
     val actions = arrayOf(
         if (app.isPinned) text.unpin else text.pin,
         text.hide,
-        text.appInfo,
-        text.uninstall
+        text.appInfo
     )
 
     AlertDialog.Builder(this)
@@ -337,7 +352,6 @@ fun MainActivity.showAppActionMenu(app: AppInfo) {
                 0 -> viewModel.togglePinApp(app)
                 1 -> viewModel.hideApp(app)
                 2 -> openAppInfo(app.packageName.toString())
-                3 -> requestUninstall(app.packageName.toString())
             }
         }
         .show()
@@ -349,18 +363,22 @@ private fun MainActivity.openAppInfo(packageName: String) {
     startActivity(intent)
 }
 
-private fun MainActivity.requestUninstall(packageName: String) {
-    val intent = Intent(Intent.ACTION_DELETE)
-        .setData(Uri.parse("package:$packageName"))
-    startActivity(intent)
-}
-
 fun MainActivity.setupMediaControls() {
     setupLcdSwipeTrackControl()
 
     binding.holdSwitch.onCheckedChange = { enabled ->
         binding.holdSwitch.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
         preferences.isMinimalModeEnabled = enabled
+        viewModel.refreshSettings()
+    }
+    binding.volumeKeySwitch.onCheckedChange = { enabled ->
+        binding.volumeKeySwitch.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+        preferences.volumeKeyMode = if (enabled) {
+            VolumeKeyMode.TRACK_CONTROL
+        } else {
+            VolumeKeyMode.MEDIA_VOLUME
+        }
+        ScreenOffVolumeKeySession.sync(this)
         viewModel.refreshSettings()
     }
 

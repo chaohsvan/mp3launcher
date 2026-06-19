@@ -25,7 +25,7 @@ class LockScreenVolumeKeyService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
-        ScreenOffVolumeKeySession.start(this)
+        ScreenOffVolumeKeySession.sync(this)
     }
 
     override fun onDestroy() {
