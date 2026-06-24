@@ -4,6 +4,7 @@ import android.animation.ObjectAnimator
 import android.content.*
 import android.content.res.Configuration
 import android.database.ContentObserver
+import android.graphics.Bitmap
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.Rect
@@ -30,8 +31,30 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.mp3launcher.databinding.ActivityMainBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+private data class LauncherChromeState(
+    val apps: List<AppInfo>,
+    val selectedCategory: AppCategory,
+    val volumeKeyMode: VolumeKeyMode,
+    val themePreset: ThemePreset,
+    val isMinimalModeEnabled: Boolean
+)
+
+private data class MediaTextState(
+    val songTitle: String,
+    val artistName: String,
+    val duration: Long,
+    val albumArt: Bitmap?
+)
+
+private data class PlaybackUiState(
+    val songTitle: String,
+    val isPlaying: Boolean
+)
 
 class MainActivity : AppCompatActivity() {
     internal lateinit var binding: ActivityMainBinding
@@ -44,6 +67,7 @@ class MainActivity : AppCompatActivity() {
     internal var audioRouteLightKey: String? = null
     internal var categoryIndicatorVisibleUntil: Long = 0L
 
+    private var displayedAlbumArt: Bitmap? = null
     private val longPressHandler = Handler(Looper.getMainLooper())
     private var longPressRunnable: Runnable? = null
     private var topScrollerLongPressRunnable: Runnable? = null
@@ -138,47 +162,89 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun observeUiState() {
-        // Main UI state collector
         lifecycleScope.launch {
-            viewModel.uiState.collectLatest { state ->
-                applyThemePreset(state.themePreset)
-                applyLauncherMode(state.isMinimalModeEnabled)
-                if (state.selectedCategory != lastDisplayedCategory) {
-                    lastDisplayedCategory = state.selectedCategory
-                    showCategoryIndicator(state.selectedCategory)
+            viewModel.uiState
+                .map { state ->
+                    LauncherChromeState(
+                        apps = state.apps,
+                        selectedCategory = state.selectedCategory,
+                        volumeKeyMode = state.volumeKeyMode,
+                        themePreset = state.themePreset,
+                        isMinimalModeEnabled = state.isMinimalModeEnabled
+                    )
                 }
-                updateAudioOutputDisplay()
-                binding.songTitle.text = state.songTitle
-                binding.artistName.text = state.artistName
-                binding.progressBar.max = state.duration.toInt()
-                updateProgressDisplay(state.progress, state.duration)
-
-                if (state.apps.isNotEmpty()) {
+                .distinctUntilChanged()
+                .collectLatest { state ->
+                    applyThemePreset(state.themePreset)
+                    applyLauncherMode(state.isMinimalModeEnabled)
+                    if (state.selectedCategory != lastDisplayedCategory) {
+                        lastDisplayedCategory = state.selectedCategory
+                        showCategoryIndicator(state.selectedCategory)
+                    }
                     appsAdapter.updateApps(state.apps)
                 }
-
-                if (state.albumArt != null) {
-                    lifecycleScope.launch(Dispatchers.Default) {
-                        val pixelated = pixelate(state.albumArt, 16)
-                        withContext(Dispatchers.Main) {
-                            binding.albumArt.setImageBitmap(pixelated)
-                        }
-                    }
-                } else {
-                    binding.albumArt.setImageResource(R.drawable.ic_record_placeholder)
-                }
-
-                if (state.isPlaying) {
-                    binding.playPauseButton.setImageResource(R.drawable.ic_pause)
-                    binding.playbackStatus.text = "PLAYING"
-                    binding.playbackIcon.setImageResource(R.drawable.ic_play)
-                } else {
-                    binding.playPauseButton.setImageResource(R.drawable.ic_play)
-                    binding.playbackStatus.text = if(state.songTitle == "READY") "STOPPED" else "PAUSED"
-                    binding.playbackIcon.setImageResource(R.drawable.ic_pause)
-                }
-            }
         }
+
+        lifecycleScope.launch {
+            viewModel.uiState
+                .map { state ->
+                    MediaTextState(
+                        songTitle = state.songTitle,
+                        artistName = state.artistName,
+                        duration = state.duration,
+                        albumArt = state.albumArt
+                    )
+                }
+                .distinctUntilChanged()
+                .collectLatest { state ->
+                    binding.songTitle.text = state.songTitle
+                    binding.artistName.text = state.artistName
+                    binding.progressBar.max = state.duration.toInt()
+                    renderAlbumArt(state.albumArt)
+                }
+        }
+
+        lifecycleScope.launch {
+            viewModel.uiState
+                .map { state -> state.progress to state.duration }
+                .distinctUntilChanged()
+                .collect { (progress, duration) ->
+                    updateProgressDisplay(progress, duration)
+                }
+        }
+
+        lifecycleScope.launch {
+            viewModel.uiState
+                .map { state -> PlaybackUiState(state.songTitle, state.isPlaying) }
+                .distinctUntilChanged()
+                .collectLatest { state ->
+                    if (state.isPlaying) {
+                        binding.playPauseButton.setImageResource(R.drawable.ic_pause)
+                        binding.playbackStatus.text = "PLAYING"
+                        binding.playbackIcon.setImageResource(R.drawable.ic_play)
+                    } else {
+                        binding.playPauseButton.setImageResource(R.drawable.ic_play)
+                        binding.playbackStatus.text = if (state.songTitle == "READY") "STOPPED" else "PAUSED"
+                        binding.playbackIcon.setImageResource(R.drawable.ic_pause)
+                    }
+                    updateAudioOutputDisplay()
+                }
+        }
+    }
+
+    private suspend fun renderAlbumArt(albumArt: Bitmap?) {
+        if (albumArt == null) {
+            displayedAlbumArt = null
+            binding.albumArt.setImageResource(R.drawable.ic_record_placeholder)
+            return
+        }
+        if (albumArt === displayedAlbumArt) return
+
+        val pixelated = withContext(Dispatchers.Default) {
+            pixelate(albumArt, 16)
+        }
+        displayedAlbumArt = albumArt
+        binding.albumArt.setImageBitmap(pixelated)
     }
 
     private fun setupBackHandling() {

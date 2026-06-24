@@ -19,7 +19,9 @@ fun formatMillis(millis: Long): String {
 fun pixelate(bitmap: Bitmap, pixelSize: Int): Bitmap {
     val width = bitmap.width
     val height = bitmap.height
-    val smallBitmap = Bitmap.createScaledBitmap(bitmap, width / pixelSize, height / pixelSize, true)
+    val sampleWidth = (width / pixelSize).coerceAtLeast(1)
+    val sampleHeight = (height / pixelSize).coerceAtLeast(1)
+    val smallBitmap = Bitmap.createScaledBitmap(bitmap, sampleWidth, sampleHeight, true)
     return Bitmap.createScaledBitmap(smallBitmap, width, height, false)
 }
 
