@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
 import android.content.res.ColorStateList
+import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Build
 import android.os.Bundle
@@ -203,7 +204,7 @@ class SettingsActivity : AppCompatActivity() {
             addView(TextView(context).apply {
                 text = description
                 textSize = 12f
-                setTextColor(theme.labelText)
+                setTextColor(settingsDescriptionColor(theme))
                 setPadding(0, 4.dp(), 0, 8.dp())
             })
             build()
@@ -320,9 +321,52 @@ class SettingsActivity : AppCompatActivity() {
         addView(TextView(context).apply {
             text = description
             textSize = 12f
-            setTextColor(theme.lcdTextFaded)
+            setTextColor(settingsDescriptionColor(theme))
             setPadding(startPadding, 3.dp(), 0, bottomPadding)
         })
+    }
+
+    private fun settingsDescriptionColor(theme: ThemePreset): Int {
+        val sectionSurface = adjustColorBrightness(theme.controlBackground, 0.88f)
+        return readableTextColor(
+            background = sectionSurface,
+            preferred = theme.labelText,
+            fallback = theme.buttonIconTint
+        )
+    }
+
+    private fun readableTextColor(background: Int, preferred: Int, fallback: Int): Int {
+        if (contrastRatio(preferred, background) >= DESCRIPTION_CONTRAST_RATIO) return preferred
+        if (contrastRatio(fallback, background) >= DESCRIPTION_CONTRAST_RATIO) return fallback
+
+        return if (contrastRatio(Color.WHITE, background) >= contrastRatio(Color.BLACK, background)) {
+            Color.WHITE
+        } else {
+            Color.BLACK
+        }
+    }
+
+    private fun contrastRatio(foreground: Int, background: Int): Double {
+        val foregroundLuminance = relativeLuminance(foreground)
+        val backgroundLuminance = relativeLuminance(background)
+        val lighter = maxOf(foregroundLuminance, backgroundLuminance)
+        val darker = minOf(foregroundLuminance, backgroundLuminance)
+        return (lighter + 0.05) / (darker + 0.05)
+    }
+
+    private fun relativeLuminance(color: Int): Double {
+        return 0.2126 * colorChannelLuminance(Color.red(color)) +
+            0.7152 * colorChannelLuminance(Color.green(color)) +
+            0.0722 * colorChannelLuminance(Color.blue(color))
+    }
+
+    private fun colorChannelLuminance(channel: Int): Double {
+        val normalized = channel / 255.0
+        return if (normalized <= 0.03928) {
+            normalized / 12.92
+        } else {
+            Math.pow((normalized + 0.055) / 1.055, 2.4)
+        }
     }
 
     private fun themedSpinnerAdapter(labels: List<String>): ArrayAdapter<String> {
@@ -354,6 +398,10 @@ class SettingsActivity : AppCompatActivity() {
         adjustColorBrightness(theme.lcdBackground, 0.92f),
         12f
     )
+
+    private companion object {
+        const val DESCRIPTION_CONTRAST_RATIO = 4.5
+    }
 
     private fun Int.dp(): Int = (this * resources.displayMetrics.density).toInt()
 
