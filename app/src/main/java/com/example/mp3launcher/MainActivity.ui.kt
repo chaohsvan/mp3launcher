@@ -421,8 +421,16 @@ fun MainActivity.setupMediaControls() {
 private fun MainActivity.setupLcdSwipeTrackControl() {
     val touchSlop = ViewConfiguration.get(this).scaledTouchSlop
     val swipeThreshold = (72f * resources.displayMetrics.density).toInt()
+    var pendingCoverLongPress: Runnable? = null
+
+    fun clearPendingCoverLongPress(view: View) {
+        pendingCoverLongPress?.let(view::removeCallbacks)
+        pendingCoverLongPress = null
+    }
+
     binding.lcdScreen.setOnTouchListener { view, event ->
         if (!viewModel.uiState.value.isLcdSwipeTrackEnabled) {
+            clearPendingCoverLongPress(view)
             return@setOnTouchListener false
         }
         when (event.actionMasked) {
@@ -430,22 +438,34 @@ private fun MainActivity.setupLcdSwipeTrackControl() {
                 lcdSwipeDownX = event.x
                 lcdSwipeDownY = event.y
                 lcdSwipeTriggered = false
+                if (isTouchInsideView(binding.albumArt, event.x, event.y)) {
+                    pendingCoverLongPress = Runnable {
+                        pendingCoverLongPress = null
+                        openCurrentMediaApp()
+                    }
+                    view.postDelayed(pendingCoverLongPress, ViewConfiguration.getLongPressTimeout().toLong())
+                }
                 view.parent?.requestDisallowInterceptTouchEvent(true)
                 true
             }
             MotionEvent.ACTION_MOVE -> {
                 val dx = event.x - lcdSwipeDownX
                 val dy = event.y - lcdSwipeDownY
+                if (kotlin.math.abs(dx) > touchSlop || kotlin.math.abs(dy) > touchSlop) {
+                    clearPendingCoverLongPress(view)
+                }
                 if (!lcdSwipeTriggered && kotlin.math.abs(dx) > touchSlop && kotlin.math.abs(dx) > kotlin.math.abs(dy) * 1.3f) {
                     view.parent?.requestDisallowInterceptTouchEvent(true)
                 }
                 if (!lcdSwipeTriggered && kotlin.math.abs(dx) >= swipeThreshold && kotlin.math.abs(dx) > kotlin.math.abs(dy) * 1.3f) {
                     lcdSwipeTriggered = true
+                    clearPendingCoverLongPress(view)
                     handleLcdTrackSwipe(if (dx < 0) 1 else -1)
                 }
                 true
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                clearPendingCoverLongPress(view)
                 view.parent?.requestDisallowInterceptTouchEvent(false)
                 lcdSwipeTriggered = false
                 true
@@ -453,6 +473,13 @@ private fun MainActivity.setupLcdSwipeTrackControl() {
             else -> true
         }
     }
+}
+
+private fun isTouchInsideView(target: View, x: Float, y: Float): Boolean {
+    return x >= target.left &&
+        x <= target.right &&
+        y >= target.top &&
+        y <= target.bottom
 }
 
 private fun MainActivity.handleLcdTrackSwipe(direction: Int) {
@@ -495,6 +522,14 @@ private fun MainActivity.animateLcdTrackSwipe(direction: Int) {
 
 private fun MainActivity.openDefaultMusicApp(): Boolean {
     val packageName = preferences.defaultMusicPackage ?: return false
+    val launchIntent = packageManager.getLaunchIntentForPackage(packageName) ?: return false
+    window.decorView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+    startActivity(launchIntent)
+    return true
+}
+
+private fun MainActivity.openCurrentMediaApp(): Boolean {
+    val packageName = MediaNotificationListenerService.mediaController?.packageName ?: return false
     val launchIntent = packageManager.getLaunchIntentForPackage(packageName) ?: return false
     window.decorView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
     startActivity(launchIntent)
