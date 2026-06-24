@@ -115,6 +115,14 @@ class SettingsActivity : AppCompatActivity() {
                 text = { text.volumeKeyModeLabel(it) },
                 onSelected = { preferences.volumeKeyMode = it }
             )
+            addCheckBox(
+                text.globalVolumeKeyTrack,
+                text.globalVolumeKeyTrackDescription,
+                preferences.isGlobalVolumeKeyTrackEnabled
+            ) {
+                preferences.isGlobalVolumeKeyTrackEnabled = it
+                ScreenOffVolumeKeySession.sync(this@SettingsActivity)
+            }
             addCheckBox(text.minimalLockMode, text.minimalLockModeDescription, preferences.isMinimalModeEnabled) {
                 preferences.isMinimalModeEnabled = it
             }

@@ -6,11 +6,10 @@ import android.media.AudioManager
 import android.media.VolumeProvider
 import android.media.session.MediaSession
 import android.media.session.PlaybackState
+import android.os.PowerManager
 import android.os.SystemClock
-import android.util.Log
 
 object ScreenOffVolumeKeySession {
-    private const val TAG = "ScreenOffVolumeKeys"
     private const val SESSION_TAG = "MP3 Launcher Screen Off Volume Keys"
     private const val VOLUME_MAX = 100
     private const val VOLUME_CURRENT = 50
@@ -81,7 +80,6 @@ object ScreenOffVolumeKeySession {
         controlTrack: () -> Unit
     ) {
         if (shouldControlTracks(context)) {
-            Log.d(TAG, "Screen-off volume key mapped to track control: $direction")
             controlTrack()
         } else {
             adjustMediaVolume(context, direction)
@@ -92,10 +90,17 @@ object ScreenOffVolumeKeySession {
         val preferences = LauncherPreferences(context)
         if (preferences.volumeKeyMode != VolumeKeyMode.TRACK_CONTROL) return false
 
-        val keyguardManager = context.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
-        if (!keyguardManager.isKeyguardLocked) return false
+        if (!isDeviceLockedOrScreenOff(context)) return false
 
         return true
+    }
+
+    private fun isDeviceLockedOrScreenOff(context: Context): Boolean {
+        val keyguardManager = context.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+        val locked = keyguardManager.isKeyguardLocked || keyguardManager.isDeviceLocked
+        val screenOff = !powerManager.isInteractive
+        return locked || screenOff
     }
 
     private fun adjustMediaVolume(context: Context, direction: Int) {

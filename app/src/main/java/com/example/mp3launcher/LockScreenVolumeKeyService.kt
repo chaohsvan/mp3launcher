@@ -5,6 +5,8 @@ import android.app.KeyguardManager
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
+import android.os.SystemClock
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
 
@@ -13,13 +15,25 @@ class LockScreenVolumeKeyService : AccessibilityService() {
     private val keyguardManager by lazy {
         getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
     }
+    private val powerManager by lazy {
+        getSystemService(Context.POWER_SERVICE) as PowerManager
+    }
 
     private var volumeKeyDown = false
     private var longPressTriggered = false
     private var longPressRunnable: Runnable? = null
     private val longPressHandler = Handler(Looper.getMainLooper())
+    private var lastForegroundPackage: String? = null
+    private var lockSurfaceSeenAtMillis = 0L
 
-    override fun onAccessibilityEvent(event: AccessibilityEvent?) = Unit
+    override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        event?.packageName?.toString()?.let {
+            lastForegroundPackage = it
+            if (it == SYSTEM_UI_PACKAGE || it == AOD_PACKAGE || !powerManager.isInteractive) {
+                lockSurfaceSeenAtMillis = SystemClock.elapsedRealtime()
+            }
+        }
+    }
 
     override fun onInterrupt() = Unit
 
@@ -38,8 +52,8 @@ class LockScreenVolumeKeyService : AccessibilityService() {
         if (keyCode != KeyEvent.KEYCODE_VOLUME_UP && keyCode != KeyEvent.KEYCODE_VOLUME_DOWN) {
             return false
         }
-        if (!keyguardManager.isKeyguardLocked) return false
         if (preferences.volumeKeyMode != VolumeKeyMode.TRACK_CONTROL) return false
+        if (!shouldHandleVolumeKey()) return false
 
         when (event.action) {
             KeyEvent.ACTION_DOWN -> {
@@ -89,7 +103,26 @@ class LockScreenVolumeKeyService : AccessibilityService() {
         longPressRunnable = null
     }
 
+    private fun shouldHandleVolumeKey(): Boolean {
+        if (isDeviceLockedOrScreenOff() || wasLockSurfaceSeenRecently()) return true
+        if (!preferences.isGlobalVolumeKeyTrackEnabled) return false
+        if (lastForegroundPackage == packageName) return false
+        return true
+    }
+
+    private fun isDeviceLockedOrScreenOff(): Boolean {
+        return keyguardManager.isKeyguardLocked || keyguardManager.isDeviceLocked || !powerManager.isInteractive
+    }
+
+    private fun wasLockSurfaceSeenRecently(): Boolean {
+        return lockSurfaceSeenAtMillis > 0 &&
+            SystemClock.elapsedRealtime() - lockSurfaceSeenAtMillis <= LOCK_SURFACE_GRACE_MS
+    }
+
     companion object {
         private const val LONG_PRESS_DELAY = 500L
+        private const val LOCK_SURFACE_GRACE_MS = 2_000L
+        private const val SYSTEM_UI_PACKAGE = "com.android.systemui"
+        private const val AOD_PACKAGE = "com.samsung.android.app.aodservice"
     }
 }
